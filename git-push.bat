@@ -1,6 +1,7 @@
 @echo off
+
 if "%~1"=="" (
-    set MESSAGE=Update
+    set /p MESSAGE="Enter commit message: "
 ) else (
     set MESSAGE=%*
 )
