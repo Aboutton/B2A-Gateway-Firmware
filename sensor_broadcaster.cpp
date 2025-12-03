@@ -13,6 +13,8 @@ void broadcastSensors() {
   // Broadcast analog inputs
   for (uint8_t i = 0; i < 3; i++) {
     if (gw_config.analog[i].enabled) {
+      uint8_t data[8] = {0};  // Clear for each sensor
+      
       float value = state.analog_voltage[i];
       value = (value * gw_config.analog[i].scale) + gw_config.analog[i].offset;
       

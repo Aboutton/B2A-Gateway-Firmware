@@ -36,6 +36,8 @@ void handleStatus() {
   
   doc["uptime"] = state.uptime;
   doc["free_heap"] = state.free_heap;
+  doc["pcf_available"] = state.pcf_available;
+  doc["ads_available"] = state.ads_available;
   doc["can1_tx"] = state.can1_tx_count;
   doc["can1_rx"] = state.can1_rx_count;
   doc["can2_tx"] = state.can2_tx_count;
@@ -43,6 +45,10 @@ void handleStatus() {
   
   JsonArray aux = doc.createNestedArray("aux");
   for (int i = 0; i < 4; i++) aux.add(state.aux[i]);
+  
+  JsonArray pwm = doc.createNestedArray("pwm");
+  pwm.add(config.pwm1_duty);
+  pwm.add(config.pwm2_duty);
   
   JsonArray analog = doc.createNestedArray("analog");
   for (int i = 0; i < 3; i++) analog.add(state.analog_voltage[i]);

@@ -20,25 +20,10 @@ void setupCAN() {
     ACAN2517FDSettings settings(ACAN2517FDSettings::OSC_40MHz, config.can_bitrate, DataBitRateFactor::x1);
     settings.mRequestedMode = ACAN2517FDSettings::Normal20B;
     
-    // ===== FILTER CONFIGURATION (RX FIX) =====
-    // If RX not working, try uncommenting different options below:
-    
-    // OPTION 1: Empty filters (CURRENT - may not work)
-       ACAN2517FDFilters filters;
-       uint32_t errorCode = can1.begin(settings, nullptr, filters);
-    
-    // OPTION 2: Try nullptr instead (uncomment to test)
-    // uint32_t errorCode = can1.begin(settings, nullptr, nullptr);
-    
-    // OPTION 3: Try appendPassAllFilter (uncomment to test)
-    // ACAN2517FDFilters filters;
-    // filters.appendPassAllFilter(nullptr);
-    // uint32_t errorCode = can1.begin(settings, nullptr, filters);
-    
-    // OPTION 4: Try with callback (uncomment to test)
-    // ACAN2517FDFilters filters;
-    // filters.appendFilter(nullptr, 0x000, 0x000, nullptr);  // mask=0 accepts all
-    // uint32_t errorCode = can1.begin(settings, nullptr, filters);
+    // Accept all CAN messages
+    ACAN2517FDFilters filters;
+    filters.appendPassAllFilter(nullptr);
+    uint32_t errorCode = can1.begin(settings, nullptr, filters);
     
     if (errorCode == 0) {
       configureMCP_GPIO0(CAN1_CS);
@@ -55,6 +40,7 @@ void setupCAN() {
     settings.mRequestedMode = ACAN2517FDSettings::Normal20B;
     
     ACAN2517FDFilters filters;
+    filters.appendPassAllFilter(nullptr);
     uint32_t errorCode = can2.begin(settings, nullptr, filters);
     
     if (errorCode == 0) {

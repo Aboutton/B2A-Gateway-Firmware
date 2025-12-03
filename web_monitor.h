@@ -187,19 +187,19 @@ const char MONITOR_PAGE[] PROGMEM = R"rawliteral(
             <div class="panel-title">🚌 CAN Bus Status</div>
             <div class="status-item">
                 <span class="label">CAN1 TX:</span>
-                <span class="value" id="can1tx">0</span>
+                <span class="value" id="can1tx" style="color: red; font-weight: bold;">NOT SENDING</span>
             </div>
             <div class="status-item">
                 <span class="label">CAN1 RX:</span>
-                <span class="value" id="can1rx">0</span>
+                <span class="value" id="can1rx" style="color: red; font-weight: bold;">NOT RECEIVING</span>
             </div>
             <div class="status-item">
                 <span class="label">CAN2 TX:</span>
-                <span class="value" id="can2tx">0</span>
+                <span class="value" id="can2tx" style="color: red; font-weight: bold;">NOT SENDING</span>
             </div>
             <div class="status-item">
                 <span class="label">CAN2 RX:</span>
-                <span class="value" id="can2rx">0</span>
+                <span class="value" id="can2rx" style="color: red; font-weight: bold;">NOT RECEIVING</span>
             </div>
         </div>
 
@@ -278,6 +278,19 @@ const char MONITOR_PAGE[] PROGMEM = R"rawliteral(
                 <span class="value"><span class="indicator off" id="aux4"></span><span id="aux4txt">OFF</span></span>
             </div>
         </div>
+        
+        <!-- PWM Outputs -->
+        <div class="panel">
+            <div class="panel-title">📊 PWM Outputs</div>
+            <div class="status-item">
+                <span class="label">PWM 1:</span>
+                <span class="value" id="pwm1">0%</span>
+            </div>
+            <div class="status-item">
+                <span class="label">PWM 2:</span>
+                <span class="value" id="pwm2">0%</span>
+            </div>
+        </div>
     </div>
 
     <!-- Active Routes -->
@@ -340,10 +353,34 @@ const char MONITOR_PAGE[] PROGMEM = R"rawliteral(
             document.getElementById('pcf').textContent = data.pcf_available ? '✓ OK' : '✗ N/A';
             document.getElementById('ads').textContent = data.ads_available ? '✓ OK' : '✗ N/A';
             
-            document.getElementById('can1tx').textContent = data.can1_tx;
-            document.getElementById('can1rx').textContent = data.can1_rx;
-            document.getElementById('can2tx').textContent = data.can2_tx;
-            document.getElementById('can2rx').textContent = data.can2_rx;
+            // CAN activity detection (compare with previous values)
+            let can1txEl = document.getElementById('can1tx');
+            let can1rxEl = document.getElementById('can1rx');
+            let can2txEl = document.getElementById('can2tx');
+            let can2rxEl = document.getElementById('can2rx');
+            
+            // Check if counters changed
+            let can1txActive = (data.can1_tx != (can1txEl.dataset.last || 0));
+            let can1rxActive = (data.can1_rx != (can1rxEl.dataset.last || 0));
+            let can2txActive = (data.can2_tx != (can2txEl.dataset.last || 0));
+            let can2rxActive = (data.can2_rx != (can2rxEl.dataset.last || 0));
+            
+            // Update display
+            can1txEl.textContent = can1txActive ? 'SENDING' : 'NOT SENDING';
+            can1txEl.style.color = can1txActive ? '#4CAF50' : '#f44336';
+            can1txEl.dataset.last = data.can1_tx;
+            
+            can1rxEl.textContent = can1rxActive ? 'RECEIVING' : 'NOT RECEIVING';
+            can1rxEl.style.color = can1rxActive ? '#4CAF50' : '#f44336';
+            can1rxEl.dataset.last = data.can1_rx;
+            
+            can2txEl.textContent = can2txActive ? 'SENDING' : 'NOT SENDING';
+            can2txEl.style.color = can2txActive ? '#4CAF50' : '#f44336';
+            can2txEl.dataset.last = data.can2_tx;
+            
+            can2rxEl.textContent = can2rxActive ? 'RECEIVING' : 'NOT RECEIVING';
+            can2rxEl.style.color = can2rxActive ? '#4CAF50' : '#f44336';
+            can2rxEl.dataset.last = data.can2_rx;
             
             // Digital inputs
             for (let i = 0; i < 5; i++) {
@@ -366,6 +403,12 @@ const char MONITOR_PAGE[] PROGMEM = R"rawliteral(
                 let state = data.aux[i];
                 document.getElementById('aux' + (i+1)).className = 'indicator ' + (state ? 'on' : 'off');
                 document.getElementById('aux' + (i+1) + 'txt').textContent = state ? 'ON' : 'OFF';
+            }
+            
+            // PWM outputs
+            if (data.pwm) {
+                document.getElementById('pwm1').textContent = data.pwm[0] + '%';
+                document.getElementById('pwm2').textContent = data.pwm[1] + '%';
             }
         }
 

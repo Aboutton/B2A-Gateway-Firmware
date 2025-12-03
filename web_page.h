@@ -248,6 +248,64 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
             </div>
             
             <div class="card">
+                <h3>AUX 3 Configuration</h3>
+                <label>Trigger Mode:</label>
+                <select id="aux3_mode" onchange="updateAuxFields(3)">
+                    <option value="0">OFF</option>
+                    <option value="1">CAN Trigger</option>
+                    <option value="2">Digital Input</option>
+                    <option value="3">Always ON</option>
+                </select>
+                <div id="aux3_can" style="display:none;">
+                    <label>CAN ID (hex):</label>
+                    <input type="text" id="aux3_canid" placeholder="0x100" value="0x100">
+                    <label>Data Byte (0-7):</label>
+                    <input type="number" id="aux3_byte" min="0" max="7" value="0">
+                    <label>Data Value (0-255):</label>
+                    <input type="number" id="aux3_value" min="0" max="255" value="0">
+                </div>
+                <div id="aux3_din" style="display:none;">
+                    <label>Digital Input:</label>
+                    <select id="aux3_dinput">
+                        <option value="1">DIN 1</option>
+                        <option value="2">DIN 2</option>
+                        <option value="3">DIN 3</option>
+                        <option value="4">DIN 4</option>
+                        <option value="5">DIN 5</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>AUX 4 Configuration</h3>
+                <label>Trigger Mode:</label>
+                <select id="aux4_mode" onchange="updateAuxFields(4)">
+                    <option value="0">OFF</option>
+                    <option value="1">CAN Trigger</option>
+                    <option value="2">Digital Input</option>
+                    <option value="3">Always ON</option>
+                </select>
+                <div id="aux4_can" style="display:none;">
+                    <label>CAN ID (hex):</label>
+                    <input type="text" id="aux4_canid" placeholder="0x100" value="0x100">
+                    <label>Data Byte (0-7):</label>
+                    <input type="number" id="aux4_byte" min="0" max="7" value="0">
+                    <label>Data Value (0-255):</label>
+                    <input type="number" id="aux4_value" min="0" max="255" value="0">
+                </div>
+                <div id="aux4_din" style="display:none;">
+                    <label>Digital Input:</label>
+                    <select id="aux4_dinput">
+                        <option value="1">DIN 1</option>
+                        <option value="2">DIN 2</option>
+                        <option value="3">DIN 3</option>
+                        <option value="4">DIN 4</option>
+                        <option value="5">DIN 5</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="card">
                 <h3>PWM 1 Configuration</h3>
                 <label>Trigger Mode:</label>
                 <select id="pwm1_mode" onchange="updatePwmFields(1)">
@@ -269,6 +327,31 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                 <div id="pwm1_alwayson" style="display:none;">
                     <label>Duty Cycle (%):</label>
                     <input type="number" id="pwm1_duty" min="0" max="100" value="50">
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>PWM 2 Configuration</h3>
+                <label>Trigger Mode:</label>
+                <select id="pwm2_mode" onchange="updatePwmFields(2)">
+                    <option value="0">OFF</option>
+                    <option value="1">CAN Trigger</option>
+                    <option value="2">Digital Input</option>
+                    <option value="3">Always ON</option>
+                </select>
+                <label>Frequency (Hz):</label>
+                <input type="number" id="pwm2_freq" value="1000" min="1" max="40000">
+                <div id="pwm2_can" style="display:none;">
+                    <label>CAN ID (hex):</label>
+                    <input type="text" id="pwm2_canid" placeholder="0x100" value="0x100">
+                    <label>Data Byte (0-7):</label>
+                    <input type="number" id="pwm2_byte" min="0" max="7" value="0">
+                    <label>Scale (byte to %):</label>
+                    <input type="number" id="pwm2_scale" step="0.1" value="0.4">
+                </div>
+                <div id="pwm2_alwayson" style="display:none;">
+                    <label>Duty Cycle (%):</label>
+                    <input type="number" id="pwm2_duty" min="0" max="100" value="50">
                 </div>
             </div>
             
