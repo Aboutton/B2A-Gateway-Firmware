@@ -100,6 +100,16 @@ void handleGetConfig() {
     obj["scale"] = gw_config.analog[i].scale;
   }
   
+  // Temperature broadcasts
+  JsonArray temp_arr = doc.createNestedArray("temp_broadcast");
+  for (int i = 0; i < 2; i++) {
+    JsonObject obj = temp_arr.createNestedObject();
+    obj["enabled"] = gw_config.temp[i].enabled;
+    obj["can_id"] = gw_config.temp[i].can_id;
+    obj["start_byte"] = gw_config.temp[i].start_byte;
+    obj["scale"] = gw_config.temp[i].scale;
+  }
+  
   // Routes
   JsonArray routes = doc.createNestedArray("routes");
   for (int i = 0; i < gw_config.route_count && i < 40; i++) {
@@ -117,26 +127,118 @@ void handleGetConfig() {
 }
 
 void handleSetConfig() {
+  Serial.println("\n=== handleSetConfig called ===");
+  
   if (!server.hasArg("plain")) {
+    Serial.println("ERROR: No body received");
     server.send(400, "text/plain", "No body");
     return;
   }
+  
+  Serial.println("Body received:");
+  Serial.println(server.arg("plain"));
   
   DynamicJsonDocument doc(4096);
   DeserializationError error = deserializeJson(doc, server.arg("plain"));
   
   if (error) {
+    Serial.print("ERROR: JSON parse failed: ");
+    Serial.println(error.c_str());
     server.send(400, "text/plain", "Invalid JSON");
     return;
   }
   
-  // Update configuration from JSON
-  if (doc.containsKey("can1_bitrate")) gw_config.can1_bitrate = doc["can1_bitrate"];
-  if (doc.containsKey("can2_bitrate")) gw_config.can2_bitrate = doc["can2_bitrate"];
+  Serial.println("JSON parsed successfully");
   
-  // More parsing would go here...
+  // CAN settings
+  if (doc.containsKey("can1_bitrate")) {
+    gw_config.can1_bitrate = doc["can1_bitrate"];
+    Serial.printf("  can1_bitrate = %d\n", gw_config.can1_bitrate);
+  }
+  if (doc.containsKey("can2_bitrate")) {
+    gw_config.can2_bitrate = doc["can2_bitrate"];
+    Serial.printf("  can2_bitrate = %d\n", gw_config.can2_bitrate);
+  }
+  if (doc.containsKey("can1_term")) {
+    gw_config.can1_term = doc["can1_term"];
+    Serial.printf("  can1_term = %s\n", gw_config.can1_term ? "true" : "false");
+  }
+  if (doc.containsKey("can2_term")) {
+    gw_config.can2_term = doc["can2_term"];
+    Serial.printf("  can2_term = %s\n", gw_config.can2_term ? "true" : "false");
+  }
   
+  // AUX triggers
+  if (doc.containsKey("aux")) {
+    Serial.println("  Updating AUX triggers...");
+    JsonArray aux = doc["aux"];
+    for (int i = 0; i < 4 && i < aux.size(); i++) {
+      gw_config.aux[i].mode = aux[i]["mode"];
+      gw_config.aux[i].can_id = aux[i]["can_id"];
+      gw_config.aux[i].data_byte = aux[i]["data_byte"];
+      gw_config.aux[i].data_value = aux[i]["data_value"];
+      gw_config.aux[i].digital_input = aux[i]["digital_input"];
+      Serial.printf("    AUX%d: mode=%d, id=0x%X\n", i+1, gw_config.aux[i].mode, gw_config.aux[i].can_id);
+    }
+  }
+  
+  // PWM triggers
+  if (doc.containsKey("pwm")) {
+    Serial.println("  Updating PWM triggers...");
+    JsonArray pwm = doc["pwm"];
+    for (int i = 0; i < 2 && i < pwm.size(); i++) {
+      gw_config.pwm[i].mode = pwm[i]["mode"];
+      gw_config.pwm[i].can_id = pwm[i]["can_id"];
+      gw_config.pwm[i].data_byte = pwm[i]["data_byte"];
+      gw_config.pwm[i].scale = pwm[i]["scale"];
+      gw_config.pwm[i].frequency = pwm[i]["frequency"];
+      gw_config.pwm[i].always_duty = pwm[i]["always_duty"];
+      Serial.printf("    PWM%d: mode=%d, freq=%d\n", i+1, gw_config.pwm[i].mode, gw_config.pwm[i].frequency);
+    }
+  }
+  
+  // Sensor broadcasts
+  if (doc.containsKey("analog_broadcast")) {
+    Serial.println("  Updating analog broadcasts...");
+    JsonArray analog_arr = doc["analog_broadcast"];
+    for (int i = 0; i < 3 && i < analog_arr.size(); i++) {
+      gw_config.analog[i].enabled = analog_arr[i]["enabled"];
+      gw_config.analog[i].can_id = analog_arr[i]["can_id"];
+      gw_config.analog[i].start_byte = analog_arr[i]["start_byte"];
+      gw_config.analog[i].scale = analog_arr[i]["scale"];
+    }
+  }
+  
+  // Temperature broadcasts
+  if (doc.containsKey("temp_broadcast")) {
+    Serial.println("  Updating temp broadcasts...");
+    JsonArray temp_arr = doc["temp_broadcast"];
+    for (int i = 0; i < 2 && i < temp_arr.size(); i++) {
+      gw_config.temp[i].enabled = temp_arr[i]["enabled"];
+      gw_config.temp[i].can_id = temp_arr[i]["can_id"];
+      gw_config.temp[i].start_byte = temp_arr[i]["start_byte"];
+      gw_config.temp[i].scale = temp_arr[i]["scale"];
+    }
+  }
+  
+  // Routes
+  if (doc.containsKey("routes")) {
+    Serial.println("  Updating routes...");
+    JsonArray routes = doc["routes"];
+    gw_config.route_count = min((int)routes.size(), 40);
+    for (int i = 0; i < gw_config.route_count; i++) {
+      gw_config.routes[i].enabled = routes[i]["enabled"];
+      gw_config.routes[i].direction = routes[i]["direction"];
+      gw_config.routes[i].src_id = routes[i]["src_id"];
+      gw_config.routes[i].dst_id = routes[i]["dst_id"];
+      gw_config.routes[i].remap_id = routes[i]["remap_id"];
+    }
+  }
+  
+  Serial.println("Applying always-on outputs...");
   applyAlwaysOnOutputs();
+  
+  Serial.println("=== handleSetConfig complete ===\n");
   server.send(200, "text/plain", "OK");
 }
 

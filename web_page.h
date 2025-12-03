@@ -296,6 +296,38 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
             </div>
             
             <div class="card">
+                <h3>Analog Input 2</h3>
+                <div class="inline-group">
+                    <input type="checkbox" id="analog2_en">
+                    <label>Enable Broadcasting</label>
+                </div>
+                <label>CAN ID (hex):</label>
+                <input type="text" id="analog2_id" placeholder="0x201" value="0x201">
+                <label>Start Byte (0-6):</label>
+                <input type="number" id="analog2_byte" min="0" max="6" value="0">
+                <label>Scale:</label>
+                <input type="number" id="analog2_scale" step="0.1" value="100">
+                <label>Offset:</label>
+                <input type="number" id="analog2_offset" step="0.1" value="0">
+            </div>
+            
+            <div class="card">
+                <h3>Analog Input 3</h3>
+                <div class="inline-group">
+                    <input type="checkbox" id="analog3_en">
+                    <label>Enable Broadcasting</label>
+                </div>
+                <label>CAN ID (hex):</label>
+                <input type="text" id="analog3_id" placeholder="0x202" value="0x202">
+                <label>Start Byte (0-6):</label>
+                <input type="number" id="analog3_byte" min="0" max="6" value="0">
+                <label>Scale:</label>
+                <input type="number" id="analog3_scale" step="0.1" value="100">
+                <label>Offset:</label>
+                <input type="number" id="analog3_offset" step="0.1" value="0">
+            </div>
+            
+            <div class="card">
                 <h3>Temperature Sensor 1</h3>
                 <div class="inline-group">
                     <input type="checkbox" id="temp1_en">
@@ -307,6 +339,20 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                 <input type="number" id="temp1_byte" min="0" max="6" value="0">
                 <label>Scale:</label>
                 <input type="number" id="temp1_scale" step="0.1" value="10">
+            </div>
+            
+            <div class="card">
+                <h3>Temperature Sensor 2</h3>
+                <div class="inline-group">
+                    <input type="checkbox" id="temp2_en">
+                    <label>Enable Broadcasting</label>
+                </div>
+                <label>CAN ID (hex):</label>
+                <input type="text" id="temp2_id" placeholder="0x211" value="0x211">
+                <label>Start Byte (0-6):</label>
+                <input type="number" id="temp2_byte" min="0" max="6" value="0">
+                <label>Scale:</label>
+                <input type="number" id="temp2_scale" step="0.1" value="10">
             </div>
             
             <div class="card">
@@ -433,8 +479,89 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
         }
         
         function loadConfig() {
-            // This would load from /api/get_config
-            // For now, config is stored locally
+            fetch('/api/get_config')
+                .then(r => r.json())
+                .then(data => {
+                    currentConfig = data;
+                    
+                    // System settings
+                    if (document.getElementById('can1Bitrate')) {
+                        document.getElementById('can1Bitrate').value = data.can1_bitrate || 500000;
+                        document.getElementById('can2Bitrate').value = data.can2_bitrate || 500000;
+                        document.getElementById('can1_term').checked = data.can1_term || false;
+                        document.getElementById('can2_term').checked = data.can2_term || false;
+                    }
+                    
+                    // AUX outputs
+                    for (let i = 0; i < 4; i++) {
+                        if (data.aux && data.aux[i] && document.getElementById('aux' + (i+1) + '_mode')) {
+                            document.getElementById('aux' + (i+1) + '_mode').value = data.aux[i].mode;
+                            document.getElementById('aux' + (i+1) + '_canid').value = '0x' + data.aux[i].can_id.toString(16).toUpperCase();
+                            document.getElementById('aux' + (i+1) + '_byte').value = data.aux[i].data_byte;
+                            document.getElementById('aux' + (i+1) + '_value').value = data.aux[i].data_value;
+                            document.getElementById('aux' + (i+1) + '_dinput').value = data.aux[i].digital_input;
+                            updateAuxFields(i+1);
+                        }
+                    }
+                    
+                    // PWM outputs
+                    for (let i = 0; i < 2; i++) {
+                        if (data.pwm && data.pwm[i] && document.getElementById('pwm' + (i+1) + '_mode')) {
+                            document.getElementById('pwm' + (i+1) + '_mode').value = data.pwm[i].mode;
+                            document.getElementById('pwm' + (i+1) + '_canid').value = '0x' + data.pwm[i].can_id.toString(16).toUpperCase();
+                            document.getElementById('pwm' + (i+1) + '_byte').value = data.pwm[i].data_byte;
+                            document.getElementById('pwm' + (i+1) + '_scale').value = data.pwm[i].scale;
+                            document.getElementById('pwm' + (i+1) + '_freq').value = data.pwm[i].frequency;
+                            document.getElementById('pwm' + (i+1) + '_duty').value = data.pwm[i].always_duty;
+                            updatePwmFields(i+1);
+                        }
+                    }
+                    
+                    // Sensor broadcasts
+                    for (let i = 0; i < 3; i++) {
+                        if (data.analog_broadcast && data.analog_broadcast[i] && document.getElementById('analog' + (i+1) + '_en')) {
+                            document.getElementById('analog' + (i+1) + '_en').checked = data.analog_broadcast[i].enabled;
+                            document.getElementById('analog' + (i+1) + '_id').value = '0x' + data.analog_broadcast[i].can_id.toString(16).toUpperCase();
+                            document.getElementById('analog' + (i+1) + '_byte').value = data.analog_broadcast[i].start_byte;
+                            document.getElementById('analog' + (i+1) + '_scale').value = data.analog_broadcast[i].scale;
+                        }
+                    }
+                    
+                    // Temperature broadcasts
+                    for (let i = 0; i < 2; i++) {
+                        if (data.temp_broadcast && data.temp_broadcast[i] && document.getElementById('temp' + (i+1) + '_en')) {
+                            document.getElementById('temp' + (i+1) + '_en').checked = data.temp_broadcast[i].enabled;
+                            document.getElementById('temp' + (i+1) + '_id').value = '0x' + data.temp_broadcast[i].can_id.toString(16).toUpperCase();
+                            document.getElementById('temp' + (i+1) + '_byte').value = data.temp_broadcast[i].start_byte;
+                            document.getElementById('temp' + (i+1) + '_scale').value = data.temp_broadcast[i].scale;
+                        }
+                    }
+                    
+                    // Routing table
+                    let tbody = document.getElementById('routeList');
+                    if (tbody && data.routes && data.routes.length > 0) {
+                        tbody.innerHTML = ''; // Clear existing
+                        
+                        data.routes.forEach(route => {
+                            let directionText = route.direction === 0 ? 'CAN1 → CAN2' : 
+                                               route.direction === 1 ? 'CAN2 → CAN1' : 'Bidirectional';
+                            let srcId = '0x' + route.src_id.toString(16).toUpperCase();
+                            let dstId = '0x' + route.dst_id.toString(16).toUpperCase();
+                            
+                            let row = tbody.insertRow();
+                            row.innerHTML = `
+                                <td><input type="checkbox" ${route.enabled ? 'checked' : ''}></td>
+                                <td>${directionText}</td>
+                                <td>${srcId}</td>
+                                <td>${dstId}</td>
+                                <td><button class="danger" onclick="this.closest('tr').remove()">Delete</button></td>
+                            `;
+                        });
+                    }
+                    
+                    console.log('Config loaded successfully');
+                })
+                .catch(err => console.error('Failed to load config:', err));
         }
         
         function updateAuxFields(num) {
@@ -450,29 +577,218 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
         }
         
         function saveOutputs() {
-            showStatus('Output configuration saved!', 'success');
-            saveToFlash();
+            console.log('saveOutputs called');
+            let config = {
+                aux: [],
+                pwm: []
+            };
+            
+            // Collect AUX data
+            for (let i = 1; i <= 4; i++) {
+                let canidField = document.getElementById('aux' + i + '_canid');
+                if (!canidField) {
+                    console.error('aux' + i + '_canid not found');
+                    continue;
+                }
+                let canid = canidField.value;
+                console.log('AUX' + i + ' canid:', canid);
+                config.aux.push({
+                    mode: parseInt(document.getElementById('aux' + i + '_mode').value),
+                    can_id: parseInt(canid, 16),
+                    data_byte: parseInt(document.getElementById('aux' + i + '_byte').value),
+                    data_value: parseInt(document.getElementById('aux' + i + '_value').value),
+                    digital_input: parseInt(document.getElementById('aux' + i + '_dinput').value)
+                });
+            }
+            
+            // Collect PWM data
+            for (let i = 1; i <= 2; i++) {
+                let canidField = document.getElementById('pwm' + i + '_canid');
+                if (!canidField) {
+                    console.error('pwm' + i + '_canid not found');
+                    continue;
+                }
+                let canid = canidField.value;
+                console.log('PWM' + i + ' canid:', canid);
+                config.pwm.push({
+                    mode: parseInt(document.getElementById('pwm' + i + '_mode').value),
+                    can_id: parseInt(canid, 16),
+                    data_byte: parseInt(document.getElementById('pwm' + i + '_byte').value),
+                    scale: parseFloat(document.getElementById('pwm' + i + '_scale').value),
+                    frequency: parseInt(document.getElementById('pwm' + i + '_freq').value),
+                    always_duty: parseInt(document.getElementById('pwm' + i + '_duty').value)
+                });
+            }
+            
+            console.log('Sending config:', config);
+            
+            fetch('/api/set_config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+            .then(r => r.text())
+            .then(() => {
+                showStatus('Output configuration saved!', 'success');
+                saveToFlash();
+            })
+            .catch(err => {
+                console.error('Save failed:', err);
+                showStatus('Save failed: ' + err, 'error');
+            });
         }
         
         function saveSensors() {
-            showStatus('Sensor configuration saved!', 'success');
-            saveToFlash();
+            console.log('saveSensors called');
+            let config = {
+                analog_broadcast: [],
+                temp_broadcast: []
+            };
+            
+            // Collect analog sensor configs
+            for (let i = 1; i <= 3; i++) {
+                let idField = document.getElementById('analog' + i + '_id');
+                if (!idField) {
+                    console.error('analog' + i + '_id not found');
+                    continue;
+                }
+                let canid = idField.value;
+                console.log('Analog' + i + ' id:', canid);
+                config.analog_broadcast.push({
+                    enabled: document.getElementById('analog' + i + '_en').checked,
+                    can_id: parseInt(canid, 16),
+                    start_byte: parseInt(document.getElementById('analog' + i + '_byte').value),
+                    scale: parseFloat(document.getElementById('analog' + i + '_scale').value)
+                });
+            }
+            
+            // Collect temp sensor configs
+            for (let i = 1; i <= 2; i++) {
+                let idField = document.getElementById('temp' + i + '_id');
+                if (!idField) {
+                    console.error('temp' + i + '_id not found');
+                    continue;
+                }
+                let canid = idField.value;
+                console.log('Temp' + i + ' id:', canid);
+                config.temp_broadcast.push({
+                    enabled: document.getElementById('temp' + i + '_en').checked,
+                    can_id: parseInt(canid, 16),
+                    start_byte: parseInt(document.getElementById('temp' + i + '_byte').value),
+                    scale: parseFloat(document.getElementById('temp' + i + '_scale').value)
+                });
+            }
+            
+            console.log('Sending config:', config);
+            
+            fetch('/api/set_config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+            .then(r => r.text())
+            .then(() => {
+                showStatus('Sensor configuration saved!', 'success');
+                saveToFlash();
+            })
+            .catch(err => {
+                console.error('Save failed:', err);
+                showStatus('Save failed: ' + err, 'error');
+            });
         }
         
         function saveRoutes() {
-            showStatus('Routing rules saved!', 'success');
-            saveToFlash();
+            let config = {
+                routes: []
+            };
+            
+            let tbody = document.getElementById('routeList');
+            if (!tbody) {
+                console.error('routeList table not found');
+                return;
+            }
+            
+            for (let i = 0; i < tbody.rows.length; i++) {
+                let row = tbody.rows[i];
+                if (row.cells.length < 5) continue; // Skip empty row placeholder
+                
+                let enabled = row.cells[0].querySelector('input[type="checkbox"]').checked;
+                let directionText = row.cells[1].textContent;
+                let direction = directionText.includes('→ CAN2') ? 0 : (directionText.includes('→ CAN1') ? 1 : 2);
+                let srcId = row.cells[2].textContent;
+                let dstId = row.cells[3].textContent;
+                
+                config.routes.push({
+                    enabled: enabled,
+                    direction: direction,
+                    src_id: parseInt(srcId, 16),
+                    dst_id: parseInt(dstId, 16),
+                    remap_id: srcId !== dstId
+                });
+            }
+            
+            console.log('Saving routes:', config);
+            
+            fetch('/api/set_config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+            .then(r => {
+                console.log('set_config response:', r.status);
+                return r.text();
+            })
+            .then(msg => {
+                console.log('set_config result:', msg);
+                console.log('Calling saveToFlash...');
+                showStatus('Routing rules saved!', 'success');
+                saveToFlash();
+            })
+            .catch(err => {
+                console.error('Save failed:', err);
+                showStatus('Save failed: ' + err, 'error');
+            });
         }
         
         function saveSystem() {
-            showStatus('System settings saved!', 'success');
-            saveToFlash();
+            let config = {
+                can1_bitrate: parseInt(document.getElementById('can1Bitrate').value),
+                can2_bitrate: parseInt(document.getElementById('can2Bitrate').value),
+                can1_term: document.getElementById('can1_term').checked,
+                can2_term: document.getElementById('can2_term').checked
+            };
+            
+            console.log('Saving system config:', config);
+            
+            fetch('/api/set_config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+            .then(r => {
+                console.log('set_config response:', r.status);
+                return r.text();
+            })
+            .then(msg => {
+                console.log('set_config result:', msg);
+                showStatus('System settings saved!', 'success');
+                saveToFlash();
+            })
+            .catch(err => {
+                console.error('Save failed:', err);
+                showStatus('Save failed: ' + err, 'error');
+            });
         }
         
         function saveToFlash() {
+            console.log('saveToFlash called');
             fetch('/api/save_config', { method: 'POST' })
-                .then(r => r.text())
-                .then(msg => console.log('Saved to flash:', msg));
+                .then(r => {
+                    console.log('save_config response:', r.status);
+                    return r.text();
+                })
+                .then(msg => console.log('Saved to flash:', msg))
+                .catch(err => console.error('Flash save error:', err));
         }
         
         function addRoute() {
@@ -510,6 +826,11 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
         
         setInterval(loadStatus, 2000);
         loadStatus();
+        
+        // Load config after page fully loads
+        window.addEventListener('load', function() {
+            setTimeout(loadConfig, 500);
+        });
     </script>
 </body>
 </html>
