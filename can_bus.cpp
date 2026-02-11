@@ -27,11 +27,11 @@ void setupCAN() {
     
     if (errorCode == 0) {
       configureMCP_GPIO0(CAN1_CS);
-      Serial.println("âœ“ CAN1 initialized");
+      Serial.println("CAN1 initialized");
       Serial.printf("  Bitrate: %d bps\n", config.can_bitrate);
       Serial.println("  RX enabled - waiting for messages...");
     } else {
-      Serial.printf("âœ— CAN1 init FAILED: error code 0x%X\n", errorCode);
+      Serial.printf("CAN1 init FAILED: error code 0x%X\n", errorCode);
     }
   }
   
@@ -45,11 +45,11 @@ void setupCAN() {
     
     if (errorCode == 0) {
       configureMCP_GPIO0(CAN2_CS);
-      Serial.println("âœ“ CAN2 initialized");
+      Serial.println("CAN2 initialized");
       Serial.printf("  Bitrate: %d bps\n", config.can_bitrate);
       Serial.println("  RX enabled - waiting for messages...");
     } else {
-      Serial.printf("âœ— CAN2 init FAILED: error code 0x%X\n", errorCode);
+      Serial.printf("CAN2 init FAILED: error code 0x%X\n", errorCode);
     }
   }
   
