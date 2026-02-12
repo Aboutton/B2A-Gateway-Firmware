@@ -5,6 +5,7 @@
 #include "config_storage.h"
 #include "output_controller.h"
 #include "pwm_control.h"
+#include "can_router.h"
 
 extern WebServer server;
 
@@ -51,6 +52,8 @@ void setupWebServer(WebServer& srv) {
   srv.on("/api/set_config", HTTP_POST, handleSetConfig);
   srv.on("/api/save_config", HTTP_POST, handleSaveConfig);
   srv.on("/api/reset_config", HTTP_POST, handleResetConfig);
+  srv.on("/api/route_stats", handleRouteStats);
+  srv.on("/api/reset_route_stats", HTTP_POST, handleResetRouteStats);
 
   // Captive portal detection endpoints (all major OS)
   // Android
@@ -178,10 +181,14 @@ void handleGetConfig() {
     JsonObject obj = routes.createNestedObject();
     obj["enabled"] = gw_config.routes[i].enabled;
     obj["direction"] = gw_config.routes[i].direction;
+    obj["filter_mode"] = gw_config.routes[i].filter_mode;
     obj["src_id"] = gw_config.routes[i].src_id;
+    obj["id_mask"] = gw_config.routes[i].id_mask;
+    obj["range_end"] = gw_config.routes[i].range_end;
     obj["dst_id"] = gw_config.routes[i].dst_id;
     obj["remap_id"] = gw_config.routes[i].remap_id;
     obj["rate_limit"] = gw_config.routes[i].rate_limit;
+    obj["allow_multi_match"] = gw_config.routes[i].allow_multi_match;
   }
 
   String json;
@@ -330,6 +337,7 @@ void handleSetConfig() {
   }
 
   // Routes with validation
+  bool routes_changed = false;
   if (doc.containsKey("routes")) {
     Serial.println("  Updating routes...");
     JsonArray routes = doc["routes"];
@@ -338,16 +346,31 @@ void handleSetConfig() {
       gw_config.routes[i].enabled = routes[i]["enabled"] | false;
       uint8_t dir = routes[i]["direction"] | 0;
       if (dir <= ROUTE_BIDIRECTIONAL) gw_config.routes[i].direction = dir;
+      uint8_t fm = routes[i]["filter_mode"] | 0;
+      if (fm <= FILTER_PASS_ALL) gw_config.routes[i].filter_mode = fm;
       gw_config.routes[i].src_id = routes[i]["src_id"] | (uint32_t)0;
+      gw_config.routes[i].id_mask = routes[i]["id_mask"] | (uint32_t)0x7FF;
+      gw_config.routes[i].range_end = routes[i]["range_end"] | (uint32_t)0;
       gw_config.routes[i].dst_id = routes[i]["dst_id"] | (uint32_t)0;
       gw_config.routes[i].remap_id = routes[i]["remap_id"] | false;
-      gw_config.routes[i].rate_limit = routes[i]["rate_limit"] | 0;
+      uint16_t rl = routes[i]["rate_limit"] | 0;
+      gw_config.routes[i].rate_limit = rl;
+      gw_config.routes[i].allow_multi_match = routes[i]["allow_multi_match"] | false;
+      // Reset runtime fields
       gw_config.routes[i].last_forward = 0;
+      gw_config.routes[i].forward_count = 0;
+      gw_config.routes[i].drop_count = 0;
     }
+    routes_changed = true;
   }
 
   Serial.println("Applying always-on outputs...");
   applyAlwaysOnOutputs();
+
+  // Rebuild route lookup index if routes changed
+  if (routes_changed) {
+    buildRouteIndex();
+  }
 
   Serial.println("=== handleSetConfig complete ===\n");
   server.send(200, "text/plain", "OK");
@@ -364,5 +387,28 @@ void handleSaveConfig() {
 void handleResetConfig() {
   resetToDefaults();
   applyAlwaysOnOutputs();
+  buildRouteIndex();
   server.send(200, "text/plain", "Reset to defaults");
+}
+
+void handleRouteStats() {
+  StaticJsonDocument<2048> doc;
+  JsonArray arr = doc.createNestedArray("routes");
+
+  for (int i = 0; i < gw_config.route_count && i < 40; i++) {
+    JsonObject obj = arr.createNestedObject();
+    obj["index"] = i;
+    obj["enabled"] = gw_config.routes[i].enabled;
+    obj["forwarded"] = gw_config.routes[i].forward_count;
+    obj["dropped"] = gw_config.routes[i].drop_count;
+  }
+
+  String json;
+  serializeJson(doc, json);
+  server.send(200, "application/json", json);
+}
+
+void handleResetRouteStats() {
+  resetRouteStats();
+  server.send(200, "text/plain", "Route stats reset");
 }

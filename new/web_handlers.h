@@ -14,5 +14,7 @@ void handleSaveConfig();
 void handleResetConfig();
 void handleCaptiveRedirect();
 void handleNotFound();
+void handleRouteStats();
+void handleResetRouteStats();
 
 #endif

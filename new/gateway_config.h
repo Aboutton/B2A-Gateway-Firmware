@@ -14,8 +14,14 @@
 #define ROUTE_CAN2_TO_CAN1  1
 #define ROUTE_BIDIRECTIONAL 2
 
+// Route filter modes
+#define FILTER_EXACT    0   // Match exact src_id
+#define FILTER_MASK     1   // Match (msg.id & id_mask) == src_id
+#define FILTER_RANGE    2   // Match src_id <= msg.id <= dst_id_range_end
+#define FILTER_PASS_ALL 3   // Forward everything (src_id ignored)
+
 // Config version for flash storage
-#define CONFIG_VERSION 0x0100
+#define CONFIG_VERSION 0x0200
 #define CONFIG_MAGIC   0xB2A0
 
 // AUX output trigger configuration
@@ -53,11 +59,19 @@ struct SensorBroadcast {
 struct CanRoute {
   bool enabled = false;
   uint8_t direction = ROUTE_CAN1_TO_CAN2;
-  uint32_t src_id = 0;
-  uint32_t dst_id = 0;
-  bool remap_id = false;
-  uint8_t rate_limit = 0;  // ms between forwards (0=no limit)
+  uint8_t filter_mode = FILTER_EXACT;   // How to match incoming CAN IDs
+  uint32_t src_id = 0;                  // Source ID (or base for mask/range)
+  uint32_t id_mask = 0x7FF;             // Mask for FILTER_MASK mode
+  uint32_t range_end = 0;               // End ID for FILTER_RANGE mode
+  uint32_t dst_id = 0;                  // Remapped destination ID
+  bool remap_id = false;                // If true, use dst_id instead of original
+  uint16_t rate_limit = 0;              // ms between forwards (0=no limit, max 65535)
+  bool allow_multi_match = false;       // If true, don't stop after this route matches
+
+  // Runtime fields (not saved to flash)
   unsigned long last_forward = 0;
+  uint32_t forward_count = 0;           // Per-route forwarded message counter
+  uint32_t drop_count = 0;              // Per-route rate-limited drop counter
 };
 
 // Main gateway configuration

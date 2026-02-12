@@ -79,6 +79,7 @@ void setup() {
 
   // Initialize gateway modules
   initOutputController();
+  buildRouteIndex();
 
   // Start WiFi if enabled
   if (gw_config.wifi_enabled) {

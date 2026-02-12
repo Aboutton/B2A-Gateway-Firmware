@@ -18,6 +18,8 @@ static void resetRuntimeFields() {
   // Reset non-persistent runtime fields after loading from flash
   for (uint8_t i = 0; i < 40; i++) {
     gw_config.routes[i].last_forward = 0;
+    gw_config.routes[i].forward_count = 0;
+    gw_config.routes[i].drop_count = 0;
   }
 }
 
