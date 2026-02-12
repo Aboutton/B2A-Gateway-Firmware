@@ -450,43 +450,74 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
         <!-- Routing Tab -->
         <div id="routing" class="tab-content">
             <h2>CAN Message Routing</h2>
-            
+
             <div class="card">
-                <h3>➕ Add New Route</h3>
-                <label>Direction:</label>
-                <select id="new_direction">
-                    <option value="0">CAN1 → CAN2</option>
-                    <option value="1">CAN2 → CAN1</option>
-                    <option value="2">Bidirectional</option>
-                </select>
-                <label>Source ID (hex):</label>
-                <input type="text" id="new_srcid" placeholder="0x100" value="0x100">
-                <label>Destination ID (hex):</label>
-                <input type="text" id="new_dstid" placeholder="0x100" value="0x100">
-                <div class="inline-group">
-                    <input type="checkbox" id="new_remap">
-                    <label>Remap ID (use Destination ID)</label>
+                <h3>Add New Route</h3>
+                <div class="grid-2">
+                    <div>
+                        <label>Direction:</label>
+                        <select id="new_direction">
+                            <option value="0">CAN1 -> CAN2</option>
+                            <option value="1">CAN2 -> CAN1</option>
+                            <option value="2">Bidirectional</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Filter Mode:</label>
+                        <select id="new_filter" onchange="updateNewRouteFields()">
+                            <option value="0">Exact ID</option>
+                            <option value="1">Mask Filter</option>
+                            <option value="2">ID Range</option>
+                            <option value="3">Pass All</option>
+                        </select>
+                    </div>
                 </div>
-                <button onclick="addRoute()">Add Route</button>
+                <div id="new_exact_fields">
+                    <label>Source CAN ID (hex):</label>
+                    <input type="text" id="new_srcid" placeholder="0x100" value="0x100">
+                </div>
+                <div id="new_mask_fields" style="display:none;">
+                    <label>Base CAN ID (hex):</label>
+                    <input type="text" id="new_mask_srcid" placeholder="0x100" value="0x100">
+                    <label>ID Mask (hex):</label>
+                    <input type="text" id="new_idmask" placeholder="0x7FF" value="0x7F0">
+                </div>
+                <div id="new_range_fields" style="display:none;">
+                    <label>Start CAN ID (hex):</label>
+                    <input type="text" id="new_range_start" placeholder="0x100" value="0x100">
+                    <label>End CAN ID (hex):</label>
+                    <input type="text" id="new_range_end" placeholder="0x1FF" value="0x1FF">
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label>Remap to ID (hex):</label>
+                        <input type="text" id="new_dstid" placeholder="0x100" value="0x100">
+                    </div>
+                    <div>
+                        <label>Rate Limit (ms, 0=none):</label>
+                        <input type="number" id="new_ratelimit" min="0" max="65535" value="0">
+                    </div>
+                </div>
+                <div class="inline-group" style="margin-top:10px;">
+                    <input type="checkbox" id="new_remap">
+                    <label>Remap ID</label>
+                </div>
+                <div class="inline-group">
+                    <input type="checkbox" id="new_multimatch">
+                    <label>Allow Multi-Match (continue checking other routes)</label>
+                </div>
+                <button onclick="addRoute()" style="margin-top:10px;">Add Route</button>
             </div>
-            
+
             <h3>Current Routes</h3>
-            <table id="routeTable">
-                <thead>
-                    <tr>
-                        <th>Enabled</th>
-                        <th>Direction</th>
-                        <th>Source ID</th>
-                        <th>Dest ID</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="routeList">
-                    <tr><td colspan="5">No routes configured</td></tr>
-                </tbody>
-            </table>
-            
-            <button class="success" onclick="saveRoutes()">💾 Save Routing Rules</button>
+            <div id="routeCards"></div>
+
+            <div style="margin-top:15px;">
+                <button class="success" onclick="saveRoutes()">Save Routing Rules</button>
+                <button onclick="loadRouteStats()">View Stats</button>
+                <button class="danger" onclick="resetRouteStats()">Reset Stats</button>
+            </div>
+            <div id="routeStatsArea" style="display:none; margin-top:10px;"></div>
         </div>
         
         <!-- System Tab -->
@@ -620,27 +651,8 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                         }
                     }
                     
-                    // Routing table
-                    let tbody = document.getElementById('routeList');
-                    if (tbody && data.routes && data.routes.length > 0) {
-                        tbody.innerHTML = ''; // Clear existing
-                        
-                        data.routes.forEach(route => {
-                            let directionText = route.direction === 0 ? 'CAN1 → CAN2' : 
-                                               route.direction === 1 ? 'CAN2 → CAN1' : 'Bidirectional';
-                            let srcId = '0x' + route.src_id.toString(16).toUpperCase();
-                            let dstId = '0x' + route.dst_id.toString(16).toUpperCase();
-                            
-                            let row = tbody.insertRow();
-                            row.innerHTML = `
-                                <td><input type="checkbox" ${route.enabled ? 'checked' : ''}></td>
-                                <td>${directionText}</td>
-                                <td>${srcId}</td>
-                                <td>${dstId}</td>
-                                <td><button class="danger" onclick="this.closest('tr').remove()">Delete</button></td>
-                            `;
-                        });
-                    }
+                    // Routing cards
+                    renderRouteCards(data.routes || []);
                     
                     console.log('Config loaded successfully');
                 })
@@ -781,54 +793,39 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
         }
         
         function saveRoutes() {
-            let config = {
-                routes: []
-            };
-            
-            let tbody = document.getElementById('routeList');
-            if (!tbody) {
-                console.error('routeList table not found');
-                return;
-            }
-            
-            for (let i = 0; i < tbody.rows.length; i++) {
-                let row = tbody.rows[i];
-                if (row.cells.length < 5) continue; // Skip empty row placeholder
-                
-                let enabled = row.cells[0].querySelector('input[type="checkbox"]').checked;
-                let directionText = row.cells[1].textContent;
-                let direction = directionText.includes('→ CAN2') ? 0 : (directionText.includes('→ CAN1') ? 1 : 2);
-                let srcId = row.cells[2].textContent;
-                let dstId = row.cells[3].textContent;
-                
-                config.routes.push({
-                    enabled: enabled,
-                    direction: direction,
-                    src_id: parseInt(srcId, 16),
-                    dst_id: parseInt(dstId, 16),
-                    remap_id: srcId !== dstId
-                });
-            }
-            
+            let cards = document.querySelectorAll('.route-card');
+            let config = { routes: [] };
+
+            cards.forEach(card => {
+                let fm = parseInt(card.dataset.filter_mode);
+                let route = {
+                    enabled: card.querySelector('.route-enabled').checked,
+                    direction: parseInt(card.querySelector('.route-dir').value),
+                    filter_mode: fm,
+                    src_id: parseInt(card.querySelector('.route-srcid').value, 16) || 0,
+                    id_mask: parseInt(card.querySelector('.route-mask').value, 16) || 0x7FF,
+                    range_end: parseInt(card.querySelector('.route-rangeend').value, 16) || 0,
+                    dst_id: parseInt(card.querySelector('.route-dstid').value, 16) || 0,
+                    remap_id: card.querySelector('.route-remap').checked,
+                    rate_limit: parseInt(card.querySelector('.route-ratelimit').value) || 0,
+                    allow_multi_match: card.querySelector('.route-multi').checked
+                };
+                config.routes.push(route);
+            });
+
             console.log('Saving routes:', config);
-            
+
             fetch('/api/set_config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(config)
             })
-            .then(r => {
-                console.log('set_config response:', r.status);
-                return r.text();
-            })
+            .then(r => r.text())
             .then(msg => {
-                console.log('set_config result:', msg);
-                console.log('Calling saveToFlash...');
                 showStatus('Routing rules saved!', 'success');
                 saveToFlash();
             })
             .catch(err => {
-                console.error('Save failed:', err);
                 showStatus('Save failed: ' + err, 'error');
             });
         }
@@ -874,18 +871,147 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                 .catch(err => console.error('Flash save error:', err));
         }
         
+        const FILTER_NAMES = ['Exact ID', 'Mask Filter', 'ID Range', 'Pass All'];
+        const DIR_NAMES = ['CAN1 -> CAN2', 'CAN2 -> CAN1', 'Bidirectional'];
+
+        function updateNewRouteFields() {
+            let fm = document.getElementById('new_filter').value;
+            document.getElementById('new_exact_fields').style.display = (fm === '0') ? 'block' : 'none';
+            document.getElementById('new_mask_fields').style.display = (fm === '1') ? 'block' : 'none';
+            document.getElementById('new_range_fields').style.display = (fm === '2') ? 'block' : 'none';
+        }
+
         function addRoute() {
-            let tbody = document.getElementById('routeList');
-            if (tbody.rows[0].cells.length === 1) tbody.innerHTML = '';
-            
-            let row = tbody.insertRow();
-            row.innerHTML = `
-                <td><input type="checkbox" checked></td>
-                <td>${document.getElementById('new_direction').selectedOptions[0].text}</td>
-                <td>${document.getElementById('new_srcid').value}</td>
-                <td>${document.getElementById('new_dstid').value}</td>
-                <td><button class="danger" onclick="this.closest('tr').remove()">Delete</button></td>
+            let fm = parseInt(document.getElementById('new_filter').value);
+            let srcId = '0x0', mask = '0x7FF', rangeEnd = '0x0';
+
+            if (fm === 0) {
+                srcId = document.getElementById('new_srcid').value;
+            } else if (fm === 1) {
+                srcId = document.getElementById('new_mask_srcid').value;
+                mask = document.getElementById('new_idmask').value;
+            } else if (fm === 2) {
+                srcId = document.getElementById('new_range_start').value;
+                rangeEnd = document.getElementById('new_range_end').value;
+            }
+
+            let route = {
+                enabled: true,
+                direction: parseInt(document.getElementById('new_direction').value),
+                filter_mode: fm,
+                src_id: parseInt(srcId, 16) || 0,
+                id_mask: parseInt(mask, 16) || 0x7FF,
+                range_end: parseInt(rangeEnd, 16) || 0,
+                dst_id: parseInt(document.getElementById('new_dstid').value, 16) || 0,
+                remap_id: document.getElementById('new_remap').checked,
+                rate_limit: parseInt(document.getElementById('new_ratelimit').value) || 0,
+                allow_multi_match: document.getElementById('new_multimatch').checked
+            };
+
+            let container = document.getElementById('routeCards');
+            container.appendChild(createRouteCard(route, container.children.length));
+        }
+
+        function toHex(val) {
+            return '0x' + (val || 0).toString(16).toUpperCase();
+        }
+
+        function createRouteCard(route, index) {
+            let card = document.createElement('div');
+            card.className = 'card route-card';
+            card.dataset.filter_mode = route.filter_mode;
+
+            let filterDesc = '';
+            if (route.filter_mode === 0) filterDesc = 'ID: ' + toHex(route.src_id);
+            else if (route.filter_mode === 1) filterDesc = 'Base: ' + toHex(route.src_id) + ' Mask: ' + toHex(route.id_mask);
+            else if (route.filter_mode === 2) filterDesc = toHex(route.src_id) + ' - ' + toHex(route.range_end);
+            else filterDesc = 'All messages';
+
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <h3 style="margin:0;">Route #${index + 1} - ${FILTER_NAMES[route.filter_mode]}</h3>
+                    <div>
+                        <input type="checkbox" class="route-enabled" ${route.enabled ? 'checked' : ''}>
+                        <label style="display:inline; margin:0;">Enabled</label>
+                        <button class="danger" style="margin-left:10px; padding:5px 10px;" onclick="this.closest('.route-card').remove()">Delete</button>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label>Direction:</label>
+                        <select class="route-dir">
+                            <option value="0" ${route.direction===0?'selected':''}>CAN1 -> CAN2</option>
+                            <option value="1" ${route.direction===1?'selected':''}>CAN2 -> CAN1</option>
+                            <option value="2" ${route.direction===2?'selected':''}>Bidirectional</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Filter: ${FILTER_NAMES[route.filter_mode]}</label>
+                        <div style="padding:8px; background:#eee; border-radius:4px; margin-top:5px;">${filterDesc}</div>
+                    </div>
+                </div>
+                <input type="hidden" class="route-srcid" value="${toHex(route.src_id)}">
+                <input type="hidden" class="route-mask" value="${toHex(route.id_mask)}">
+                <input type="hidden" class="route-rangeend" value="${toHex(route.range_end)}">
+                <div class="grid-2" style="margin-top:8px;">
+                    <div>
+                        <label>Remap to ID (hex):</label>
+                        <input type="text" class="route-dstid" value="${toHex(route.dst_id)}">
+                    </div>
+                    <div>
+                        <label>Rate Limit (ms):</label>
+                        <input type="number" class="route-ratelimit" min="0" max="65535" value="${route.rate_limit}">
+                    </div>
+                </div>
+                <div style="margin-top:8px;">
+                    <div class="inline-group">
+                        <input type="checkbox" class="route-remap" ${route.remap_id?'checked':''}>
+                        <label>Remap ID</label>
+                    </div>
+                    <div class="inline-group">
+                        <input type="checkbox" class="route-multi" ${route.allow_multi_match?'checked':''}>
+                        <label>Allow Multi-Match</label>
+                    </div>
+                </div>
             `;
+            return card;
+        }
+
+        function renderRouteCards(routes) {
+            let container = document.getElementById('routeCards');
+            if (!container) return;
+            container.innerHTML = '';
+            if (routes.length === 0) {
+                container.innerHTML = '<div class="card"><p>No routes configured</p></div>';
+                return;
+            }
+            routes.forEach((route, i) => {
+                container.appendChild(createRouteCard(route, i));
+            });
+        }
+
+        function loadRouteStats() {
+            fetch('/api/route_stats')
+                .then(r => r.json())
+                .then(data => {
+                    let area = document.getElementById('routeStatsArea');
+                    area.style.display = 'block';
+                    let html = '<div class="card"><h3>Route Statistics</h3><table><thead><tr><th>#</th><th>Enabled</th><th>Forwarded</th><th>Dropped</th></tr></thead><tbody>';
+                    (data.routes || []).forEach(r => {
+                        html += '<tr><td>' + (r.index+1) + '</td><td>' + (r.enabled?'Yes':'No') + '</td><td>' + r.forwarded + '</td><td>' + r.dropped + '</td></tr>';
+                    });
+                    html += '</tbody></table></div>';
+                    area.innerHTML = html;
+                })
+                .catch(err => showStatus('Failed to load stats', 'error'));
+        }
+
+        function resetRouteStats() {
+            fetch('/api/reset_route_stats', { method: 'POST' })
+                .then(() => {
+                    showStatus('Route stats reset', 'success');
+                    document.getElementById('routeStatsArea').style.display = 'none';
+                });
         }
         
         function resetConfig() {
