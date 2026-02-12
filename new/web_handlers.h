@@ -12,5 +12,7 @@ void handleGetConfig();
 void handleSetConfig();
 void handleSaveConfig();
 void handleResetConfig();
+void handleCaptiveRedirect();
+void handleNotFound();
 
 #endif

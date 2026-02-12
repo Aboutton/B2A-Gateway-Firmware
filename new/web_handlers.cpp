@@ -7,6 +7,41 @@
 #include "pwm_control.h"
 
 extern WebServer server;
+
+static const char REDIRECT_URL[] = "http://b2a-gateway.local";
+
+// Redirect to mDNS hostname
+void handleCaptiveRedirect() {
+  server.sendHeader("Location", REDIRECT_URL, true);
+  server.send(302, "text/html",
+    "<html><body><a href=\"http://b2a-gateway.local\">Click here</a></body></html>");
+}
+
+// For Android: must return HTTP 204 for detection, then redirect
+void handleGenerate204() {
+  server.sendHeader("Location", REDIRECT_URL, true);
+  server.send(302, "text/plain", "");
+}
+
+// For Apple: must NOT return 200 with "Success" to trigger portal popup
+void handleAppleCaptive() {
+  server.sendHeader("Location", REDIRECT_URL, true);
+  server.send(302, "text/html",
+    "<html><body><a href=\"http://b2a-gateway.local\">Click here</a></body></html>");
+}
+
+// Check if request is for our own hostname — if so, serve normally; otherwise redirect
+void handleNotFound() {
+  String host = server.hostHeader();
+  if (host == "b2a-gateway.local" || host == "192.168.4.1") {
+    // Serve the main page for our own hostname
+    server.send_P(200, "text/html", HTML_PAGE);
+  } else {
+    // Any other hostname = captive portal redirect
+    handleCaptiveRedirect();
+  }
+}
+
 void handleMonitor();
 void setupWebServer(WebServer& srv) {
   srv.on("/", handleRoot);
@@ -17,11 +52,25 @@ void setupWebServer(WebServer& srv) {
   srv.on("/api/save_config", HTTP_POST, handleSaveConfig);
   srv.on("/api/reset_config", HTTP_POST, handleResetConfig);
 
-  // Captive portal
-  srv.on("/generate_204", handleRoot);
-  srv.on("/fwlink", handleRoot);
-  srv.on("/hotspot-detect.html", handleRoot);
-  srv.onNotFound(handleRoot);
+  // Captive portal detection endpoints (all major OS)
+  // Android
+  srv.on("/generate_204", handleGenerate204);
+  srv.on("/gen_204", handleGenerate204);
+  srv.on("/connecttest.txt", handleCaptiveRedirect);
+  // Apple iOS / macOS
+  srv.on("/hotspot-detect.html", handleAppleCaptive);
+  srv.on("/library/test/success.html", handleAppleCaptive);
+  // Windows
+  srv.on("/fwlink", handleCaptiveRedirect);
+  srv.on("/connecttest.txt", handleCaptiveRedirect);
+  srv.on("/redirect", handleCaptiveRedirect);
+  srv.on("/ncsi.txt", handleCaptiveRedirect);
+  // Firefox
+  srv.on("/canonical.html", handleCaptiveRedirect);
+  srv.on("/success.txt", handleCaptiveRedirect);
+
+  // Any unknown URL — check host and redirect if not our hostname
+  srv.onNotFound(handleNotFound);
 }
 
 void handleRoot() {

@@ -16,6 +16,7 @@
 #include <WebServer.h>
 #include <WebSocketsServer.h>
 #include <ESPmDNS.h>
+#include <DNSServer.h>
 
 #include "config.h"
 #include "gateway_config.h"
@@ -39,6 +40,7 @@ String wifi_ssid;
 
 WebServer server(80);
 WebSocketsServer webSocket(81);
+DNSServer dnsServer;
 
 // Timing
 unsigned long lastUpdate = 0;
@@ -86,6 +88,10 @@ void setup() {
     Serial.print("AP IP: ");
     Serial.println(IP);
 
+    // Start DNS server - redirect ALL DNS queries to our IP (captive portal)
+    dnsServer.start(53, "*", IP);
+    Serial.println("DNS captive portal started");
+
     // Start mDNS
     if (MDNS.begin("b2a-gateway")) {
       Serial.println("mDNS started: http://b2a-gateway.local");
@@ -117,6 +123,7 @@ void setup() {
 void loop() {
   // Handle communication
   if (gw_config.wifi_enabled) {
+    dnsServer.processNextRequest();
     server.handleClient();
     webSocket.loop();
   }
