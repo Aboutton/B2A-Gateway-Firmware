@@ -21,7 +21,7 @@
 #define FILTER_PASS_ALL 3   // Forward everything (src_id ignored)
 
 // Config version for flash storage
-#define CONFIG_VERSION 0x0200
+#define CONFIG_VERSION 0x0300
 #define CONFIG_MAGIC   0xB2A0
 
 // AUX output trigger configuration
@@ -55,6 +55,20 @@ struct SensorBroadcast {
   float offset = 0.0;
 };
 
+// Data modification operation types
+#define MODIFY_SET     0   // Set bits:    data[byte] |= value  (within mask)
+#define MODIFY_CLEAR   1   // Clear bits:  data[byte] &= ~value (within mask)
+#define MODIFY_REPLACE 2   // Replace:     data[byte] = (data[byte] & ~mask) | (value & mask)
+
+// Single bit/byte modification rule
+struct DataModify {
+  bool enabled = false;
+  uint8_t byte_index = 0;    // Which data byte (0-7)
+  uint8_t bit_mask = 0xFF;   // Which bits to modify (bitmask)
+  uint8_t value = 0;         // Value to set/apply
+  uint8_t operation = MODIFY_REPLACE;  // SET, CLEAR, or REPLACE
+};
+
 // CAN routing rule
 struct CanRoute {
   bool enabled = false;
@@ -67,6 +81,9 @@ struct CanRoute {
   bool remap_id = false;                // If true, use dst_id instead of original
   uint16_t rate_limit = 0;              // ms between forwards (0=no limit, max 65535)
   bool allow_multi_match = false;       // If true, don't stop after this route matches
+
+  // Data modifications — up to 4 per route
+  DataModify modifications[4];
 
   // Runtime fields (not saved to flash)
   unsigned long last_forward = 0;

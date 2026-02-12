@@ -506,6 +506,70 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                     <input type="checkbox" id="new_multimatch">
                     <label>Allow Multi-Match (continue checking other routes)</label>
                 </div>
+
+                <div style="margin-top:12px; padding:10px; background:#eef; border-radius:6px;">
+                    <h4 style="margin:0 0 8px 0; color:#667eea;">Data Modifications (optional)</h4>
+                    <p style="font-size:12px; color:#666; margin-bottom:8px;">Modify specific bits/bytes in the CAN data before forwarding</p>
+                    <div id="new_mods">
+                        <div class="mod-row" style="display:flex; gap:6px; align-items:center; margin-bottom:4px; flex-wrap:wrap;">
+                            <input type="checkbox" id="new_mod0_en" title="Enable">
+                            <select id="new_mod0_op" style="width:auto;">
+                                <option value="2">Replace</option>
+                                <option value="0">Set bits</option>
+                                <option value="1">Clear bits</option>
+                            </select>
+                            <label style="margin:0; font-size:12px;">Byte:</label>
+                            <input type="number" id="new_mod0_byte" min="0" max="7" value="0" style="width:50px;">
+                            <label style="margin:0; font-size:12px;">Mask (hex):</label>
+                            <input type="text" id="new_mod0_mask" value="0xFF" style="width:60px;">
+                            <label style="margin:0; font-size:12px;">Value (hex):</label>
+                            <input type="text" id="new_mod0_val" value="0x00" style="width:60px;">
+                        </div>
+                        <div class="mod-row" style="display:flex; gap:6px; align-items:center; margin-bottom:4px; flex-wrap:wrap;">
+                            <input type="checkbox" id="new_mod1_en" title="Enable">
+                            <select id="new_mod1_op" style="width:auto;">
+                                <option value="2">Replace</option>
+                                <option value="0">Set bits</option>
+                                <option value="1">Clear bits</option>
+                            </select>
+                            <label style="margin:0; font-size:12px;">Byte:</label>
+                            <input type="number" id="new_mod1_byte" min="0" max="7" value="0" style="width:50px;">
+                            <label style="margin:0; font-size:12px;">Mask (hex):</label>
+                            <input type="text" id="new_mod1_mask" value="0xFF" style="width:60px;">
+                            <label style="margin:0; font-size:12px;">Value (hex):</label>
+                            <input type="text" id="new_mod1_val" value="0x00" style="width:60px;">
+                        </div>
+                        <div class="mod-row" style="display:flex; gap:6px; align-items:center; margin-bottom:4px; flex-wrap:wrap;">
+                            <input type="checkbox" id="new_mod2_en" title="Enable">
+                            <select id="new_mod2_op" style="width:auto;">
+                                <option value="2">Replace</option>
+                                <option value="0">Set bits</option>
+                                <option value="1">Clear bits</option>
+                            </select>
+                            <label style="margin:0; font-size:12px;">Byte:</label>
+                            <input type="number" id="new_mod2_byte" min="0" max="7" value="0" style="width:50px;">
+                            <label style="margin:0; font-size:12px;">Mask (hex):</label>
+                            <input type="text" id="new_mod2_mask" value="0xFF" style="width:60px;">
+                            <label style="margin:0; font-size:12px;">Value (hex):</label>
+                            <input type="text" id="new_mod2_val" value="0x00" style="width:60px;">
+                        </div>
+                        <div class="mod-row" style="display:flex; gap:6px; align-items:center; margin-bottom:4px; flex-wrap:wrap;">
+                            <input type="checkbox" id="new_mod3_en" title="Enable">
+                            <select id="new_mod3_op" style="width:auto;">
+                                <option value="2">Replace</option>
+                                <option value="0">Set bits</option>
+                                <option value="1">Clear bits</option>
+                            </select>
+                            <label style="margin:0; font-size:12px;">Byte:</label>
+                            <input type="number" id="new_mod3_byte" min="0" max="7" value="0" style="width:50px;">
+                            <label style="margin:0; font-size:12px;">Mask (hex):</label>
+                            <input type="text" id="new_mod3_mask" value="0xFF" style="width:60px;">
+                            <label style="margin:0; font-size:12px;">Value (hex):</label>
+                            <input type="text" id="new_mod3_val" value="0x00" style="width:60px;">
+                        </div>
+                    </div>
+                </div>
+
                 <button onclick="addRoute()" style="margin-top:10px;">Add Route</button>
             </div>
 
@@ -798,6 +862,24 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
 
             cards.forEach(card => {
                 let fm = parseInt(card.dataset.filter_mode);
+
+                // Collect modifications from this card
+                let mods = [];
+                let modEns = card.querySelectorAll('.mod-en');
+                let modOps = card.querySelectorAll('.mod-op');
+                let modBytes = card.querySelectorAll('.mod-byte');
+                let modMasks = card.querySelectorAll('.mod-mask');
+                let modVals = card.querySelectorAll('.mod-val');
+                for (let m = 0; m < 4; m++) {
+                    mods.push({
+                        enabled: modEns[m] ? modEns[m].checked : false,
+                        byte_index: modBytes[m] ? parseInt(modBytes[m].value) || 0 : 0,
+                        bit_mask: modMasks[m] ? parseInt(modMasks[m].value, 16) || 0xFF : 0xFF,
+                        value: modVals[m] ? parseInt(modVals[m].value, 16) || 0 : 0,
+                        operation: modOps[m] ? parseInt(modOps[m].value) || 0 : 0
+                    });
+                }
+
                 let route = {
                     enabled: card.querySelector('.route-enabled').checked,
                     direction: parseInt(card.querySelector('.route-dir').value),
@@ -808,7 +890,8 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                     dst_id: parseInt(card.querySelector('.route-dstid').value, 16) || 0,
                     remap_id: card.querySelector('.route-remap').checked,
                     rate_limit: parseInt(card.querySelector('.route-ratelimit').value) || 0,
-                    allow_multi_match: card.querySelector('.route-multi').checked
+                    allow_multi_match: card.querySelector('.route-multi').checked,
+                    modifications: mods
                 };
                 config.routes.push(route);
             });
@@ -895,6 +978,17 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                 rangeEnd = document.getElementById('new_range_end').value;
             }
 
+            let mods = [];
+            for (let m = 0; m < 4; m++) {
+                mods.push({
+                    enabled: document.getElementById('new_mod' + m + '_en').checked,
+                    byte_index: parseInt(document.getElementById('new_mod' + m + '_byte').value) || 0,
+                    bit_mask: parseInt(document.getElementById('new_mod' + m + '_mask').value, 16) || 0xFF,
+                    value: parseInt(document.getElementById('new_mod' + m + '_val').value, 16) || 0,
+                    operation: parseInt(document.getElementById('new_mod' + m + '_op').value) || 0
+                });
+            }
+
             let route = {
                 enabled: true,
                 direction: parseInt(document.getElementById('new_direction').value),
@@ -905,7 +999,8 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                 dst_id: parseInt(document.getElementById('new_dstid').value, 16) || 0,
                 remap_id: document.getElementById('new_remap').checked,
                 rate_limit: parseInt(document.getElementById('new_ratelimit').value) || 0,
-                allow_multi_match: document.getElementById('new_multimatch').checked
+                allow_multi_match: document.getElementById('new_multimatch').checked,
+                modifications: mods
             };
 
             let container = document.getElementById('routeCards');
@@ -915,6 +1010,12 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
         function toHex(val) {
             return '0x' + (val || 0).toString(16).toUpperCase();
         }
+
+        function toHex8(val) {
+            return '0x' + (val || 0).toString(16).toUpperCase().padStart(2, '0');
+        }
+
+        const OP_NAMES = ['Set bits', 'Clear bits', 'Replace'];
 
         function createRouteCard(route, index) {
             let card = document.createElement('div');
@@ -926,6 +1027,33 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
             else if (route.filter_mode === 1) filterDesc = 'Base: ' + toHex(route.src_id) + ' Mask: ' + toHex(route.id_mask);
             else if (route.filter_mode === 2) filterDesc = toHex(route.src_id) + ' - ' + toHex(route.range_end);
             else filterDesc = 'All messages';
+
+            // Build modifications HTML
+            let mods = route.modifications || [{},{},{},{}];
+            let modsHtml = '';
+            for (let m = 0; m < 4; m++) {
+                let mod = mods[m] || {};
+                let en = mod.enabled || false;
+                let bi = mod.byte_index || 0;
+                let bm = mod.bit_mask !== undefined ? mod.bit_mask : 0xFF;
+                let val = mod.value || 0;
+                let op = mod.operation || 0;
+                modsHtml += `
+                    <div style="display:flex; gap:5px; align-items:center; margin-bottom:3px; flex-wrap:wrap;">
+                        <input type="checkbox" class="mod-en" ${en?'checked':''} title="Enable">
+                        <select class="mod-op" style="width:auto; padding:4px;">
+                            <option value="2" ${op===2?'selected':''}>Replace</option>
+                            <option value="0" ${op===0?'selected':''}>Set</option>
+                            <option value="1" ${op===1?'selected':''}>Clear</option>
+                        </select>
+                        <span style="font-size:11px;">B:</span>
+                        <input type="number" class="mod-byte" min="0" max="7" value="${bi}" style="width:42px; padding:4px;">
+                        <span style="font-size:11px;">Mask:</span>
+                        <input type="text" class="mod-mask" value="${toHex8(bm)}" style="width:50px; padding:4px;">
+                        <span style="font-size:11px;">Val:</span>
+                        <input type="text" class="mod-val" value="${toHex8(val)}" style="width:50px; padding:4px;">
+                    </div>`;
+            }
 
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -972,6 +1100,10 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                         <input type="checkbox" class="route-multi" ${route.allow_multi_match?'checked':''}>
                         <label>Allow Multi-Match</label>
                     </div>
+                </div>
+                <div class="route-mods" style="margin-top:8px; padding:8px; background:#eef; border-radius:6px;">
+                    <strong style="font-size:12px; color:#667eea;">Data Modifications:</strong>
+                    ${modsHtml}
                 </div>
             `;
             return card;

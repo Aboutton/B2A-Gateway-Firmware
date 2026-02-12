@@ -118,7 +118,7 @@ void handleStatus() {
 }
 
 void handleGetConfig() {
-  StaticJsonDocument<4096> doc;
+  StaticJsonDocument<8192> doc;
 
   // CAN settings
   doc["can1_bitrate"] = gw_config.can1_bitrate;
@@ -189,6 +189,17 @@ void handleGetConfig() {
     obj["remap_id"] = gw_config.routes[i].remap_id;
     obj["rate_limit"] = gw_config.routes[i].rate_limit;
     obj["allow_multi_match"] = gw_config.routes[i].allow_multi_match;
+
+    // Data modifications
+    JsonArray mods = obj.createNestedArray("modifications");
+    for (int m = 0; m < 4; m++) {
+      JsonObject mod = mods.createNestedObject();
+      mod["enabled"] = gw_config.routes[i].modifications[m].enabled;
+      mod["byte_index"] = gw_config.routes[i].modifications[m].byte_index;
+      mod["bit_mask"] = gw_config.routes[i].modifications[m].bit_mask;
+      mod["value"] = gw_config.routes[i].modifications[m].value;
+      mod["operation"] = gw_config.routes[i].modifications[m].operation;
+    }
   }
 
   String json;
@@ -217,7 +228,7 @@ void handleSetConfig() {
   Serial.println("Body received:");
   Serial.println(server.arg("plain"));
 
-  StaticJsonDocument<4096> doc;
+  StaticJsonDocument<8192> doc;
   DeserializationError error = deserializeJson(doc, server.arg("plain"));
 
   if (error) {
@@ -356,6 +367,30 @@ void handleSetConfig() {
       uint16_t rl = routes[i]["rate_limit"] | 0;
       gw_config.routes[i].rate_limit = rl;
       gw_config.routes[i].allow_multi_match = routes[i]["allow_multi_match"] | false;
+
+      // Data modifications
+      if (routes[i].containsKey("modifications")) {
+        JsonArray mods = routes[i]["modifications"];
+        for (int m = 0; m < 4 && m < (int)mods.size(); m++) {
+          gw_config.routes[i].modifications[m].enabled = mods[m]["enabled"] | false;
+          uint8_t bi = mods[m]["byte_index"] | 0;
+          if (bi < 8) gw_config.routes[i].modifications[m].byte_index = bi;
+          gw_config.routes[i].modifications[m].bit_mask = mods[m]["bit_mask"] | 0xFF;
+          gw_config.routes[i].modifications[m].value = mods[m]["value"] | 0;
+          uint8_t op = mods[m]["operation"] | 0;
+          if (op <= MODIFY_REPLACE) gw_config.routes[i].modifications[m].operation = op;
+        }
+        // Clear unused modification slots
+        for (int m = (int)mods.size(); m < 4; m++) {
+          gw_config.routes[i].modifications[m] = DataModify();
+        }
+      } else {
+        // No modifications in JSON — clear all
+        for (int m = 0; m < 4; m++) {
+          gw_config.routes[i].modifications[m] = DataModify();
+        }
+      }
+
       // Reset runtime fields
       gw_config.routes[i].last_forward = 0;
       gw_config.routes[i].forward_count = 0;

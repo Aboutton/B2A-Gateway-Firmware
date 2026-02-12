@@ -69,6 +69,40 @@ static inline bool checkRateLimit(CanRoute& route) {
   return false;
 }
 
+// Apply data modifications to a copy of the message data
+static inline void applyDataModifications(const CanRoute& route, uint8_t* data, uint8_t len) {
+  for (uint8_t m = 0; m < 4; m++) {
+    const DataModify& mod = route.modifications[m];
+    if (!mod.enabled || mod.byte_index >= len) continue;
+
+    switch (mod.operation) {
+      case MODIFY_SET:
+        // Set specific bits: OR the value (masked)
+        data[mod.byte_index] |= (mod.value & mod.bit_mask);
+        break;
+
+      case MODIFY_CLEAR:
+        // Clear specific bits: AND with inverted mask
+        data[mod.byte_index] &= ~(mod.value & mod.bit_mask);
+        break;
+
+      case MODIFY_REPLACE:
+      default:
+        // Replace bits within mask: clear masked bits, then set new value
+        data[mod.byte_index] = (data[mod.byte_index] & ~mod.bit_mask) | (mod.value & mod.bit_mask);
+        break;
+    }
+  }
+}
+
+// Check if any modifications are enabled for a route
+static inline bool hasModifications(const CanRoute& route) {
+  for (uint8_t m = 0; m < 4; m++) {
+    if (route.modifications[m].enabled) return true;
+  }
+  return false;
+}
+
 // Process a single route against a message
 static inline bool processRoute(uint8_t route_idx, uint8_t dst_bus, const CANFDMessage& msg) {
   CanRoute& route = gw_config.routes[route_idx];
@@ -82,9 +116,21 @@ static inline bool processRoute(uint8_t route_idx, uint8_t dst_bus, const CANFDM
   // Determine forwarded ID
   uint32_t forward_id = route.remap_id ? route.dst_id : msg.id;
 
-  // Forward
-  if (canSend(dst_bus, forward_id, msg.ext, msg.data, msg.len)) {
-    route.forward_count++;
+  // Apply data modifications if any are enabled
+  if (hasModifications(route)) {
+    uint8_t modified_data[64];
+    uint8_t copy_len = min((uint8_t)msg.len, (uint8_t)64);
+    memcpy(modified_data, msg.data, copy_len);
+    applyDataModifications(route, modified_data, copy_len);
+
+    if (canSend(dst_bus, forward_id, msg.ext, modified_data, msg.len)) {
+      route.forward_count++;
+    }
+  } else {
+    // No modifications — forward original data
+    if (canSend(dst_bus, forward_id, msg.ext, msg.data, msg.len)) {
+      route.forward_count++;
+    }
   }
 
   // Return whether to continue matching more routes
