@@ -2,47 +2,66 @@
 #include "can_bus.h"
 #include "config.h"
 
+// Per-sensor last broadcast timestamps
+static unsigned long lastAnalogBroadcast[3] = {0, 0, 0};
+static unsigned long lastTempBroadcast[2] = {0, 0};
+
+// Send data on the configured bus(es)
+static void sensorSend(uint8_t bus_cfg, uint32_t can_id, bool ext, const uint8_t* data, uint8_t dlc) {
+  if (bus_cfg == 1 || bus_cfg == 3) {
+    canSend(1, can_id, ext, data, dlc);
+  }
+  if (bus_cfg == 2 || bus_cfg == 3) {
+    canSend(2, can_id, ext, data, dlc);
+  }
+}
+
 void broadcastSensors() {
   uint8_t data[8] = {0};
+  unsigned long now = millis();
 
   // Broadcast analog inputs
   for (uint8_t i = 0; i < 3; i++) {
-    if (gw_config.analog[i].enabled) {
-      memset(data, 0, 8);
+    if (!gw_config.analog[i].enabled) continue;
+    if (now - lastAnalogBroadcast[i] < gw_config.analog[i].interval) continue;
+    lastAnalogBroadcast[i] = now;
 
-      float value = state.analog_voltage[i];
-      value = (value * gw_config.analog[i].scale) + gw_config.analog[i].offset;
+    memset(data, 0, 8);
 
-      // Convert to 16-bit integer
-      int16_t scaled = (int16_t)(value * 100);  // 2 decimal places
+    float value = state.analog_voltage[i];
+    value = (value * gw_config.analog[i].scale) + gw_config.analog[i].offset;
 
-      uint8_t start = gw_config.analog[i].start_byte;
-      if (start <= 6) {
-        data[start] = (scaled >> 8) & 0xFF;
-        data[start + 1] = scaled & 0xFF;
+    // Convert to 16-bit integer
+    int16_t scaled = (int16_t)(value * 100);  // 2 decimal places
 
-        canSend(1, gw_config.analog[i].can_id, false, data, 8);
-      }
+    uint8_t start = gw_config.analog[i].start_byte;
+    if (start <= 6) {
+      data[start] = (scaled >> 8) & 0xFF;
+      data[start + 1] = scaled & 0xFF;
+
+      sensorSend(gw_config.analog[i].can_bus, gw_config.analog[i].can_id, false, data, 8);
     }
   }
 
   // Broadcast temperature sensors
   for (uint8_t i = 0; i < 2; i++) {
-    if (gw_config.temp[i].enabled) {
-      float value = (i == 0) ? state.temp1 : state.temp2;
-      value = (value * gw_config.temp[i].scale) + gw_config.temp[i].offset;
+    if (!gw_config.temp[i].enabled) continue;
+    if (now - lastTempBroadcast[i] < gw_config.temp[i].interval) continue;
+    lastTempBroadcast[i] = now;
 
-      // Convert to 16-bit integer
-      int16_t scaled = (int16_t)(value * 10);  // 1 decimal place
+    float value = (i == 0) ? state.temp1 : state.temp2;
+    value = (value * gw_config.temp[i].scale) + gw_config.temp[i].offset;
 
-      uint8_t start = gw_config.temp[i].start_byte;
-      if (start <= 6) {
-        memset(data, 0, 8);
-        data[start] = (scaled >> 8) & 0xFF;
-        data[start + 1] = scaled & 0xFF;
+    // Convert to 16-bit integer
+    int16_t scaled = (int16_t)(value * 10);  // 1 decimal place
 
-        canSend(1, gw_config.temp[i].can_id, false, data, 8);
-      }
+    uint8_t start = gw_config.temp[i].start_byte;
+    if (start <= 6) {
+      memset(data, 0, 8);
+      data[start] = (scaled >> 8) & 0xFF;
+      data[start + 1] = scaled & 0xFF;
+
+      sensorSend(gw_config.temp[i].can_bus, gw_config.temp[i].can_id, false, data, 8);
     }
   }
 }

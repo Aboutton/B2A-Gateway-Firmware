@@ -162,6 +162,8 @@ void handleGetConfig() {
     obj["start_byte"] = gw_config.analog[i].start_byte;
     obj["scale"] = gw_config.analog[i].scale;
     obj["offset"] = gw_config.analog[i].offset;
+    obj["can_bus"] = gw_config.analog[i].can_bus;
+    obj["interval"] = gw_config.analog[i].interval;
   }
 
   // Temperature broadcasts
@@ -173,6 +175,8 @@ void handleGetConfig() {
     obj["start_byte"] = gw_config.temp[i].start_byte;
     obj["scale"] = gw_config.temp[i].scale;
     obj["offset"] = gw_config.temp[i].offset;
+    obj["can_bus"] = gw_config.temp[i].can_bus;
+    obj["interval"] = gw_config.temp[i].interval;
   }
 
   // Routes
@@ -330,6 +334,10 @@ void handleSetConfig() {
       if (sb <= 6) gw_config.analog[i].start_byte = sb;
       gw_config.analog[i].scale = analog_arr[i]["scale"] | 1.0f;
       gw_config.analog[i].offset = analog_arr[i]["offset"] | 0.0f;
+      uint8_t bus = analog_arr[i]["can_bus"] | 1;
+      if (bus >= 1 && bus <= 3) gw_config.analog[i].can_bus = bus;
+      uint16_t intv = analog_arr[i]["interval"] | 100;
+      if (intv >= 10 && intv <= 10000) gw_config.analog[i].interval = intv;
     }
   }
 
@@ -344,6 +352,10 @@ void handleSetConfig() {
       if (sb <= 6) gw_config.temp[i].start_byte = sb;
       gw_config.temp[i].scale = temp_arr[i]["scale"] | 1.0f;
       gw_config.temp[i].offset = temp_arr[i]["offset"] | 0.0f;
+      uint8_t bus = temp_arr[i]["can_bus"] | 1;
+      if (bus >= 1 && bus <= 3) gw_config.temp[i].can_bus = bus;
+      uint16_t intv = temp_arr[i]["interval"] | 100;
+      if (intv >= 10 && intv <= 10000) gw_config.temp[i].interval = intv;
     }
   }
 
@@ -356,7 +368,7 @@ void handleSetConfig() {
     for (int i = 0; i < gw_config.route_count; i++) {
       gw_config.routes[i].enabled = routes[i]["enabled"] | false;
       uint8_t dir = routes[i]["direction"] | 0;
-      if (dir <= ROUTE_BIDIRECTIONAL) gw_config.routes[i].direction = dir;
+      if (dir <= ROUTE_CAN2_TO_CAN2) gw_config.routes[i].direction = dir;
       uint8_t fm = routes[i]["filter_mode"] | 0;
       if (fm <= FILTER_PASS_ALL) gw_config.routes[i].filter_mode = fm;
       gw_config.routes[i].src_id = routes[i]["src_id"] | (uint32_t)0;

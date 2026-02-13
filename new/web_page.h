@@ -368,46 +368,124 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                     <input type="checkbox" id="analog1_en">
                     <label>Enable Broadcasting</label>
                 </div>
-                <label>CAN ID (hex):</label>
-                <input type="text" id="analog1_id" placeholder="0x200" value="0x200">
-                <label>Start Byte (0-6):</label>
-                <input type="number" id="analog1_byte" min="0" max="6" value="0">
-                <label>Scale:</label>
-                <input type="number" id="analog1_scale" step="0.1" value="100">
-                <label>Offset:</label>
-                <input type="number" id="analog1_offset" step="0.1" value="0">
+                <div class="grid-2">
+                    <div>
+                        <label>CAN ID (hex):</label>
+                        <input type="text" id="analog1_id" placeholder="0x200" value="0x200">
+                    </div>
+                    <div>
+                        <label>Broadcast Bus:</label>
+                        <select id="analog1_bus">
+                            <option value="1">CAN1</option>
+                            <option value="2">CAN2</option>
+                            <option value="3">Both</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label>Start Byte (0-6):</label>
+                        <input type="number" id="analog1_byte" min="0" max="6" value="0">
+                    </div>
+                    <div>
+                        <label>Interval (ms):</label>
+                        <input type="number" id="analog1_interval" min="10" max="10000" value="100">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label>Scale:</label>
+                        <input type="number" id="analog1_scale" step="0.1" value="100">
+                    </div>
+                    <div>
+                        <label>Offset:</label>
+                        <input type="number" id="analog1_offset" step="0.1" value="0">
+                    </div>
+                </div>
             </div>
-            
+
             <div class="card">
                 <h3>Analog Input 2</h3>
                 <div class="inline-group">
                     <input type="checkbox" id="analog2_en">
                     <label>Enable Broadcasting</label>
                 </div>
-                <label>CAN ID (hex):</label>
-                <input type="text" id="analog2_id" placeholder="0x201" value="0x201">
-                <label>Start Byte (0-6):</label>
-                <input type="number" id="analog2_byte" min="0" max="6" value="0">
-                <label>Scale:</label>
-                <input type="number" id="analog2_scale" step="0.1" value="100">
-                <label>Offset:</label>
-                <input type="number" id="analog2_offset" step="0.1" value="0">
+                <div class="grid-2">
+                    <div>
+                        <label>CAN ID (hex):</label>
+                        <input type="text" id="analog2_id" placeholder="0x201" value="0x201">
+                    </div>
+                    <div>
+                        <label>Broadcast Bus:</label>
+                        <select id="analog2_bus">
+                            <option value="1">CAN1</option>
+                            <option value="2">CAN2</option>
+                            <option value="3">Both</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label>Start Byte (0-6):</label>
+                        <input type="number" id="analog2_byte" min="0" max="6" value="0">
+                    </div>
+                    <div>
+                        <label>Interval (ms):</label>
+                        <input type="number" id="analog2_interval" min="10" max="10000" value="100">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label>Scale:</label>
+                        <input type="number" id="analog2_scale" step="0.1" value="100">
+                    </div>
+                    <div>
+                        <label>Offset:</label>
+                        <input type="number" id="analog2_offset" step="0.1" value="0">
+                    </div>
+                </div>
             </div>
-            
+
             <div class="card">
                 <h3>Analog Input 3</h3>
                 <div class="inline-group">
                     <input type="checkbox" id="analog3_en">
                     <label>Enable Broadcasting</label>
                 </div>
-                <label>CAN ID (hex):</label>
-                <input type="text" id="analog3_id" placeholder="0x202" value="0x202">
-                <label>Start Byte (0-6):</label>
-                <input type="number" id="analog3_byte" min="0" max="6" value="0">
-                <label>Scale:</label>
-                <input type="number" id="analog3_scale" step="0.1" value="100">
-                <label>Offset:</label>
-                <input type="number" id="analog3_offset" step="0.1" value="0">
+                <div class="grid-2">
+                    <div>
+                        <label>CAN ID (hex):</label>
+                        <input type="text" id="analog3_id" placeholder="0x202" value="0x202">
+                    </div>
+                    <div>
+                        <label>Broadcast Bus:</label>
+                        <select id="analog3_bus">
+                            <option value="1">CAN1</option>
+                            <option value="2">CAN2</option>
+                            <option value="3">Both</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label>Start Byte (0-6):</label>
+                        <input type="number" id="analog3_byte" min="0" max="6" value="0">
+                    </div>
+                    <div>
+                        <label>Interval (ms):</label>
+                        <input type="number" id="analog3_interval" min="10" max="10000" value="100">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label>Scale:</label>
+                        <input type="number" id="analog3_scale" step="0.1" value="100">
+                    </div>
+                    <div>
+                        <label>Offset:</label>
+                        <input type="number" id="analog3_offset" step="0.1" value="0">
+                    </div>
+                </div>
             </div>
             
             <div class="card">
@@ -416,32 +494,66 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                     <input type="checkbox" id="temp1_en">
                     <label>Enable Broadcasting</label>
                 </div>
-                <label>CAN ID (hex):</label>
-                <input type="text" id="temp1_id" placeholder="0x210" value="0x210">
-                <label>Start Byte (0-6):</label>
-                <input type="number" id="temp1_byte" min="0" max="6" value="0">
+                <div class="grid-2">
+                    <div>
+                        <label>CAN ID (hex):</label>
+                        <input type="text" id="temp1_id" placeholder="0x210" value="0x210">
+                    </div>
+                    <div>
+                        <label>Broadcast Bus:</label>
+                        <select id="temp1_bus">
+                            <option value="1">CAN1</option>
+                            <option value="2">CAN2</option>
+                            <option value="3">Both</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label>Start Byte (0-6):</label>
+                        <input type="number" id="temp1_byte" min="0" max="6" value="0">
+                    </div>
+                    <div>
+                        <label>Interval (ms):</label>
+                        <input type="number" id="temp1_interval" min="10" max="10000" value="100">
+                    </div>
+                </div>
                 <label>Scale:</label>
                 <input type="number" id="temp1_scale" step="0.1" value="10">
             </div>
-            
+
             <div class="card">
                 <h3>Temperature Sensor 2</h3>
                 <div class="inline-group">
                     <input type="checkbox" id="temp2_en">
                     <label>Enable Broadcasting</label>
                 </div>
-                <label>CAN ID (hex):</label>
-                <input type="text" id="temp2_id" placeholder="0x211" value="0x211">
-                <label>Start Byte (0-6):</label>
-                <input type="number" id="temp2_byte" min="0" max="6" value="0">
+                <div class="grid-2">
+                    <div>
+                        <label>CAN ID (hex):</label>
+                        <input type="text" id="temp2_id" placeholder="0x211" value="0x211">
+                    </div>
+                    <div>
+                        <label>Broadcast Bus:</label>
+                        <select id="temp2_bus">
+                            <option value="1">CAN1</option>
+                            <option value="2">CAN2</option>
+                            <option value="3">Both</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label>Start Byte (0-6):</label>
+                        <input type="number" id="temp2_byte" min="0" max="6" value="0">
+                    </div>
+                    <div>
+                        <label>Interval (ms):</label>
+                        <input type="number" id="temp2_interval" min="10" max="10000" value="100">
+                    </div>
+                </div>
                 <label>Scale:</label>
                 <input type="number" id="temp2_scale" step="0.1" value="10">
-            </div>
-            
-            <div class="card">
-                <h3>Broadcast Settings</h3>
-                <label>Broadcast Interval (ms):</label>
-                <input type="number" id="sensor_interval" min="50" max="5000" value="100">
             </div>
             
             <button class="success" onclick="saveSensors()">💾 Save Sensor Configuration</button>
@@ -460,6 +572,8 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                             <option value="0">CAN1 -> CAN2</option>
                             <option value="1">CAN2 -> CAN1</option>
                             <option value="2">Bidirectional</option>
+                            <option value="3">CAN1 -> CAN1 (Loopback)</option>
+                            <option value="4">CAN2 -> CAN2 (Loopback)</option>
                         </select>
                     </div>
                     <div>
@@ -702,9 +816,15 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                             document.getElementById('analog' + (i+1) + '_id').value = '0x' + data.analog_broadcast[i].can_id.toString(16).toUpperCase();
                             document.getElementById('analog' + (i+1) + '_byte').value = data.analog_broadcast[i].start_byte;
                             document.getElementById('analog' + (i+1) + '_scale').value = data.analog_broadcast[i].scale;
+                            if (data.analog_broadcast[i].offset !== undefined)
+                                document.getElementById('analog' + (i+1) + '_offset').value = data.analog_broadcast[i].offset;
+                            if (data.analog_broadcast[i].can_bus !== undefined)
+                                document.getElementById('analog' + (i+1) + '_bus').value = data.analog_broadcast[i].can_bus;
+                            if (data.analog_broadcast[i].interval !== undefined)
+                                document.getElementById('analog' + (i+1) + '_interval').value = data.analog_broadcast[i].interval;
                         }
                     }
-                    
+
                     // Temperature broadcasts
                     for (let i = 0; i < 2; i++) {
                         if (data.temp_broadcast && data.temp_broadcast[i] && document.getElementById('temp' + (i+1) + '_en')) {
@@ -712,6 +832,10 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                             document.getElementById('temp' + (i+1) + '_id').value = '0x' + data.temp_broadcast[i].can_id.toString(16).toUpperCase();
                             document.getElementById('temp' + (i+1) + '_byte').value = data.temp_broadcast[i].start_byte;
                             document.getElementById('temp' + (i+1) + '_scale').value = data.temp_broadcast[i].scale;
+                            if (data.temp_broadcast[i].can_bus !== undefined)
+                                document.getElementById('temp' + (i+1) + '_bus').value = data.temp_broadcast[i].can_bus;
+                            if (data.temp_broadcast[i].interval !== undefined)
+                                document.getElementById('temp' + (i+1) + '_interval').value = data.temp_broadcast[i].interval;
                         }
                     }
                     
@@ -803,7 +927,7 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                 analog_broadcast: [],
                 temp_broadcast: []
             };
-            
+
             // Collect analog sensor configs
             for (let i = 1; i <= 3; i++) {
                 let idField = document.getElementById('analog' + i + '_id');
@@ -817,10 +941,13 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                     enabled: document.getElementById('analog' + i + '_en').checked,
                     can_id: parseInt(canid, 16),
                     start_byte: parseInt(document.getElementById('analog' + i + '_byte').value),
-                    scale: parseFloat(document.getElementById('analog' + i + '_scale').value)
+                    scale: parseFloat(document.getElementById('analog' + i + '_scale').value),
+                    offset: parseFloat(document.getElementById('analog' + i + '_offset').value) || 0,
+                    can_bus: parseInt(document.getElementById('analog' + i + '_bus').value) || 1,
+                    interval: parseInt(document.getElementById('analog' + i + '_interval').value) || 100
                 });
             }
-            
+
             // Collect temp sensor configs
             for (let i = 1; i <= 2; i++) {
                 let idField = document.getElementById('temp' + i + '_id');
@@ -834,7 +961,9 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                     enabled: document.getElementById('temp' + i + '_en').checked,
                     can_id: parseInt(canid, 16),
                     start_byte: parseInt(document.getElementById('temp' + i + '_byte').value),
-                    scale: parseFloat(document.getElementById('temp' + i + '_scale').value)
+                    scale: parseFloat(document.getElementById('temp' + i + '_scale').value),
+                    can_bus: parseInt(document.getElementById('temp' + i + '_bus').value) || 1,
+                    interval: parseInt(document.getElementById('temp' + i + '_interval').value) || 100
                 });
             }
             
@@ -955,7 +1084,7 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
         }
         
         const FILTER_NAMES = ['Exact ID', 'Mask Filter', 'ID Range', 'Pass All'];
-        const DIR_NAMES = ['CAN1 -> CAN2', 'CAN2 -> CAN1', 'Bidirectional'];
+        const DIR_NAMES = ['CAN1 -> CAN2', 'CAN2 -> CAN1', 'Bidirectional', 'CAN1 -> CAN1', 'CAN2 -> CAN2'];
 
         function updateNewRouteFields() {
             let fm = document.getElementById('new_filter').value;
@@ -1071,6 +1200,8 @@ const char HTML_PAGE[] PROGMEM = R"rawliteral(
                             <option value="0" ${route.direction===0?'selected':''}>CAN1 -> CAN2</option>
                             <option value="1" ${route.direction===1?'selected':''}>CAN2 -> CAN1</option>
                             <option value="2" ${route.direction===2?'selected':''}>Bidirectional</option>
+                            <option value="3" ${route.direction===3?'selected':''}>CAN1 -> CAN1</option>
+                            <option value="4" ${route.direction===4?'selected':''}>CAN2 -> CAN2</option>
                         </select>
                     </div>
                     <div>

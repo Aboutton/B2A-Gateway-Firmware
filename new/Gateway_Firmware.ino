@@ -44,7 +44,6 @@ DNSServer dnsServer;
 
 // Timing
 unsigned long lastUpdate = 0;
-unsigned long lastSensorBroadcast = 0;
 
 String getChipID() {
   uint64_t chipid = ESP.getEfuseMac();
@@ -169,11 +168,8 @@ void loop() {
     }
   }
 
-  // Broadcast sensor data on CAN
-  if (millis() - lastSensorBroadcast >= gw_config.sensor_interval) {
-    lastSensorBroadcast = millis();
-    broadcastSensors();
-  }
+  // Broadcast sensor data on CAN (per-sensor timing handled internally)
+  broadcastSensors();
 
   // Send Bluetooth status
   // if (gw_config.bluetooth_enabled) {

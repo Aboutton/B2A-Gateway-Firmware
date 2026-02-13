@@ -3,17 +3,23 @@
 
 // Pre-built route index for O(1)-ish lookup on exact match
 // Maps: route indices split by source bus for fast iteration
-static uint8_t bus1Routes[40];
+static uint8_t bus1Routes[40];       // CAN1 -> CAN2
 static uint8_t bus1RouteCount = 0;
-static uint8_t bus2Routes[40];
+static uint8_t bus2Routes[40];       // CAN2 -> CAN1
 static uint8_t bus2RouteCount = 0;
-static uint8_t bidiRoutes[40];
+static uint8_t bidiRoutes[40];       // Bidirectional
 static uint8_t bidiRouteCount = 0;
+static uint8_t loop1Routes[40];      // CAN1 -> CAN1 (loopback)
+static uint8_t loop1RouteCount = 0;
+static uint8_t loop2Routes[40];      // CAN2 -> CAN2 (loopback)
+static uint8_t loop2RouteCount = 0;
 
 void buildRouteIndex() {
   bus1RouteCount = 0;
   bus2RouteCount = 0;
   bidiRouteCount = 0;
+  loop1RouteCount = 0;
+  loop2RouteCount = 0;
 
   for (uint8_t i = 0; i < gw_config.route_count && i < 40; i++) {
     if (!gw_config.routes[i].enabled) continue;
@@ -28,11 +34,17 @@ void buildRouteIndex() {
       case ROUTE_BIDIRECTIONAL:
         bidiRoutes[bidiRouteCount++] = i;
         break;
+      case ROUTE_CAN1_TO_CAN1:
+        loop1Routes[loop1RouteCount++] = i;
+        break;
+      case ROUTE_CAN2_TO_CAN2:
+        loop2Routes[loop2RouteCount++] = i;
+        break;
     }
   }
 
-  Serial.printf("Route index built: CAN1->2=%d  CAN2->1=%d  Bidi=%d\n",
-    bus1RouteCount, bus2RouteCount, bidiRouteCount);
+  Serial.printf("Route index built: CAN1->2=%d  CAN2->1=%d  Bidi=%d  Loop1=%d  Loop2=%d\n",
+    bus1RouteCount, bus2RouteCount, bidiRouteCount, loop1RouteCount, loop2RouteCount);
 }
 
 // Check if a CAN message ID matches a route's filter
@@ -141,25 +153,36 @@ void routeMessage(uint8_t src_bus, const CANFDMessage& msg) {
   // Select the right route list based on source bus
   const uint8_t* directRoutes;
   uint8_t directCount;
+  const uint8_t* loopRoutes;
+  uint8_t loopCount;
 
   if (src_bus == 1) {
     directRoutes = bus1Routes;
     directCount = bus1RouteCount;
+    loopRoutes = loop1Routes;
+    loopCount = loop1RouteCount;
   } else {
     directRoutes = bus2Routes;
     directCount = bus2RouteCount;
+    loopRoutes = loop2Routes;
+    loopCount = loop2RouteCount;
   }
 
   uint8_t dst_bus = (src_bus == 1) ? 2 : 1;
 
-  // Check direction-specific routes
+  // Check direction-specific routes (cross-bus)
   for (uint8_t i = 0; i < directCount; i++) {
     if (processRoute(directRoutes[i], dst_bus, msg)) return;
   }
 
-  // Check bidirectional routes
+  // Check bidirectional routes (cross-bus)
   for (uint8_t i = 0; i < bidiRouteCount; i++) {
     if (processRoute(bidiRoutes[i], dst_bus, msg)) return;
+  }
+
+  // Check loopback routes (same bus)
+  for (uint8_t i = 0; i < loopCount; i++) {
+    if (processRoute(loopRoutes[i], src_bus, msg)) return;
   }
 }
 

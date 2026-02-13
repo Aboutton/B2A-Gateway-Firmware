@@ -13,6 +13,8 @@
 #define ROUTE_CAN1_TO_CAN2  0
 #define ROUTE_CAN2_TO_CAN1  1
 #define ROUTE_BIDIRECTIONAL 2
+#define ROUTE_CAN1_TO_CAN1  3   // Loopback: read from CAN1, modify, send back to CAN1
+#define ROUTE_CAN2_TO_CAN2  4   // Loopback: read from CAN2, modify, send back to CAN2
 
 // Route filter modes
 #define FILTER_EXACT    0   // Match exact src_id
@@ -21,7 +23,7 @@
 #define FILTER_PASS_ALL 3   // Forward everything (src_id ignored)
 
 // Config version for flash storage
-#define CONFIG_VERSION 0x0300
+#define CONFIG_VERSION 0x0301
 #define CONFIG_MAGIC   0xB2A0
 
 // AUX output trigger configuration
@@ -53,6 +55,8 @@ struct SensorBroadcast {
   uint8_t start_byte = 0;
   float scale = 1.0;
   float offset = 0.0;
+  uint8_t can_bus = 1;         // Which bus to broadcast on: 1=CAN1, 2=CAN2, 3=Both
+  uint16_t interval = 100;     // Per-sensor broadcast interval in ms
 };
 
 // Data modification operation types
